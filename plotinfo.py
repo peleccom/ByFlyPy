@@ -1,6 +1,13 @@
 ﻿# -*- coding: UTF-8 -*-
-
-'''If Matplotlib not installed import this module fail'''
+#-------------------------------------------------------------------------------
+# Name:        plotinfo.py
+# Purpose:
+#
+# Author:      Александр
+#
+# Created:     28.10.2011
+# Copyright:   (c) Александр 2011
+#-------------------------------------------------------------------------------
 try:
     import matplotlib.pylab as plt
     import matplotlib as mpl

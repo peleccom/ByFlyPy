@@ -1,4 +1,15 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Name:        byfly.py
+# Purpose:
+#
+# Author:      Александр
+#
+# Created:     28.10.2011
+# Copyright:   (c) Александр 2011
+#-------------------------------------------------------------------------------
+#!/usr/bin/env python
 try:
     import plotinfo
     Has_Matplot=True
