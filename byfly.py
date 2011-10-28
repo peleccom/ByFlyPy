@@ -47,7 +47,7 @@ p.add_option("-l","--login",action="store",type="string",dest="login",help='Logi
 p.add_option("--list",type="string",dest="check_list",metavar='<filename>',help="Check accounts in file. Each line of file must be login:password")
 p.add_option("-p","--p",action="store",type="string",dest="password",help='Password')
 p.add_option("-g","--graph",action="store",dest="graph",type='choice',help="Plot a graph. Parameters MUST BE traf or time ",choices=['traf','time'])
-p.add_option("-s","--save",action='callback',help='save graph to $[file',callback=checkimagefilename,type='string')
+p.add_option("-s","--save",action='callback',help='save graph to file',callback=checkimagefilename,type='string')
 p.set_defaults(
                 interactive=False,
                 graph=None
@@ -100,7 +100,7 @@ if opt.interactive:
             user=ByFlyUser.ByFlyUser(opt.login,opt.password)
             if user.Login():
                 user.PrintInfo()
-                if opt.graph:
+                if opt.graph and Has_Matplot:
                     plt=plotinfo.Plotter()
                     plt.PlotTrafAllocation(user.GetLog(),title=user.info)
             else:
@@ -109,6 +109,34 @@ if opt.interactive:
     except Exception,e:
         print e
         sys.exit(1)
+elif opt.check_list:
+    try:
+        list=open(opt.check_list,'rt')
+        for line in list:
+            lp=line.strip().partition(':')
+            if lp[2]=='':
+                continue
+            print("*"*40)
+            user=ByFlyUser.ByFlyUser(lp[0],lp[2])
+            if user.Login():
+                user.PrintInfo()
+                if opt.graph and Has_Matplot:
+                    if opt.imagefilename:
+                        fname=opt.imagefilename
+                        show=False
+                    else:
+                        fname=False
+                        show=true
+                    plt=plotinfo.Plotter()
+                    if opt.graph=='time':
+                        plt.PlotTimeAllocation(user.GetLog(),title=user.info,fname=fname,show=show)
+                    elif opt.graph=='traf':
+                        plt.PlotTrafAllocation(user.GetLog(),title=user.info,fname=fname,show=show)
+            else:
+                print('%s- %s'%(lp[0],user.LastError()))
+            print("*"*40+'\n')
+    except IOError,e:
+        print "%s"%e
 else:
     if not opt.login:
         sys.exit()
@@ -117,7 +145,7 @@ else:
     user=ByFlyUser.ByFlyUser(opt.login,opt.password)
     if user.Login():
         user.PrintInfo()
-        if opt.graph:
+        if opt.graph and Has_Matplot:
             if opt.imagefilename:
                 fname=opt.imagefilename
                 show=False

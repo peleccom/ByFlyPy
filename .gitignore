@@ -1,3 +1,4 @@
 *.pyc
 users.db
 *.html
+*.txt
