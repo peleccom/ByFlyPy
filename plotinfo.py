@@ -72,7 +72,10 @@ class Plotter(object):
         if title:
             plt.title(title)
         if fname:
-            plt.savefig(fname)
+            try:
+                plt.savefig(fname)
+            except Exception,e:
+                print "Exception: %s"%e
         if show:
             plt.show()
     def PlotTrafAllocation(self,sessions,fname=None,title=None,show=True):
@@ -87,6 +90,9 @@ class Plotter(object):
             if title:
                 plt.title(title)
             if fname:
-                plt.savefig(fname)
+                try:
+                    plt.savefig(fname)
+                except Exception,e:
+                    print "Exception: %s"%e
             if show:
                 plt.show()

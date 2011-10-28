@@ -22,6 +22,7 @@ import sys
 import sqlite3 as db
 import getpass
 __VERSION__='2.0'
+__FIGURE_FORMATS__=['png', 'pdf', 'svg','eps','ps']
 p=optparse.OptionParser(description=u'Проверка баланса ByFly',prog='ByFlyPy',version=u'%%prog %s'%__VERSION__)
 #
 ##u=ByFlyUser.ByFlyUser('','')
@@ -31,12 +32,22 @@ p=optparse.OptionParser(description=u'Проверка баланса ByFly',pro
 ##print u.LastError()
 ##sys.exit()
 #
+def checkimagefilename(option, opt_str, value, parser):
+    '''Check image format'''
+    if not value:
+        raise optparse.OptionValueError("option -s: Can't use without parameter")
+    if not parser.values.graph:
+        raise optparse.OptionValueError("option -s: Can't use without -g")
+    if [value for ext in __FIGURE_FORMATS__ if value.endswith(ext)]:
+        parser.values.imagefilename=value
+    else:
+        raise optparse.OptionValueError("option -s: Not correct file format. Use formats: %s"%__FIGURE_FORMATS__)
 p.add_option("-i",action="store_true",dest="interactive",help="Enable interactive mode")
 p.add_option("-l","--login",action="store",type="string",dest="login",help='Login')
 p.add_option("--list",type="string",dest="check_list",metavar='<filename>',help="Check accounts in file. Each line of file must be login:password")
 p.add_option("-p","--p",action="store",type="string",dest="password",help='Password')
 p.add_option("-g","--graph",action="store",dest="graph",type='choice',help="Plot a graph. Parameters MUST BE traf or time ",choices=['traf','time'])
-p.add_option("-s","--save",dest="imagefilename",help='save graph to file')
+p.add_option("-s","--save",action='callback',help='save graph to $[file',callback=checkimagefilename,type='string')
 p.set_defaults(
                 interactive=False,
                 graph=None
@@ -45,7 +56,6 @@ if len(sys.argv)==1:
     p.print_help()
     sys.exit()
 opt,args=p.parse_args()
-dir(opt)
 if opt.interactive:
     try:
         a=True
@@ -108,10 +118,16 @@ else:
     if user.Login():
         user.PrintInfo()
         if opt.graph:
+            if opt.imagefilename:
+                fname=opt.imagefilename
+                show=False
+            else:
+                fname=False
+                show=true
             plt=plotinfo.Plotter()
             if opt.graph=='time':
-                plt.PlotTimeAllocation(user.GetLog(),title=user.info)
+                plt.PlotTimeAllocation(user.GetLog(),title=user.info,fname=fname,show=show)
             elif opt.graph=='traf':
-                plt.PlotTrafAllocation(user.GetLog(),title=user.info)
+                plt.PlotTrafAllocation(user.GetLog(),title=user.info,fname=fname,show=show)
     else:
         print "Can't Log: "+user.LastError()
