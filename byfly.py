@@ -9,11 +9,13 @@
 # Created:     28.10.2011
 # Copyright:   (c) Александр 2011
 #-------------------------------------------------------------------------------
-#!/usr/bin/env python
+#To install MatPlotLib in Debian/Ubuntu Linux run
+# > sudo apt-get install python-matplotlib
 try:
     import plotinfo
     Has_Matplot=True
 except:
+    print ("Warning: MatPlotlib not installed - Plotting not working.")
     Has_Matplot=False
 import optparse
 import time
@@ -21,17 +23,11 @@ import ByFlyUser
 import sys
 import sqlite3 as db
 import getpass
+import os.path
 __VERSION__='2.0'
 __FIGURE_FORMATS__=['png', 'pdf', 'svg','eps','ps']
 p=optparse.OptionParser(description=u'Проверка баланса ByFly',prog='ByFlyPy',version=u'%%prog %s'%__VERSION__)
-#
-##u=ByFlyUser.ByFlyUser('','')
-##sessions=u.GetLog(fromfile='c:\\tmp\\1.csv')
-##plt=plotinfo.Plotter()
-##plt.PlotTimeAllocation(sessions[::-1],title=u'Всякая фигня')
-##print u.LastError()
-##sys.exit()
-#
+
 def checkimagefilename(option, opt_str, value, parser):
     '''Check image format'''
     if not value:
@@ -42,6 +38,7 @@ def checkimagefilename(option, opt_str, value, parser):
         parser.values.imagefilename=value
     else:
         raise optparse.OptionValueError("option -s: Not correct file format. Use formats: %s"%__FIGURE_FORMATS__)
+
 p.add_option("-i",action="store_true",dest="interactive",help="Enable interactive mode")
 p.add_option("-l","--login",action="store",type="string",dest="login",help='Login')
 p.add_option("--list",type="string",dest="check_list",metavar='<filename>',help="Check accounts in file. Each line of file must be login:password")
@@ -50,7 +47,8 @@ p.add_option("-g","--graph",action="store",dest="graph",type='choice',help="Plot
 p.add_option("-s","--save",action='callback',help='save graph to file',callback=checkimagefilename,type='string')
 p.set_defaults(
                 interactive=False,
-                graph=None
+                graph=None,
+                imagefilename=None
                 )
 if len(sys.argv)==1:
     p.print_help()
@@ -123,10 +121,14 @@ elif opt.check_list:
                 if opt.graph and Has_Matplot:
                     if opt.imagefilename:
                         fname=opt.imagefilename
+                        # Заменим имя файла на логин
+                        basename=os.path.basename(fname)
+                        no_ext=basename.partition('.')[0]
+                        fname=fname.replace(no_ext,lp[0])
                         show=False
                     else:
                         fname=False
-                        show=true
+                        show=True
                     plt=plotinfo.Plotter()
                     if opt.graph=='time':
                         plt.PlotTimeAllocation(user.GetLog(),title=user.info,fname=fname,show=show)

@@ -46,7 +46,12 @@ class Session(object):
     def __str__(self):
         return "Session<%s  %s>"%(self.begin,self.end)
 class ByFlyUser:
-    """Interface to get information"""
+    """Interface to get information
+    usage:
+        user=ByFlyUser("login","password")
+        user.Login() # connect to server and login
+        user.PrintInfo() #print account info
+    """
     _Log1='1.html'
     _Log2='2.html'
     _LastErr=''
