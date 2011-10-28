@@ -80,12 +80,24 @@ class Plotter(object):
             plt.show()
     def PlotTrafAllocation(self,sessions,fname=None,title=None,show=True):
             timepeaks=self._get_traf_peaks(sessions)
-            plt.clf()
-            plt.bar(timepeaks[0],timepeaks[1],label=u'Трафик за день')
-            plt.grid(True)
+            #plt.clf()
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            for i,j in enumerate(timepeaks[0]):
+                timepeaks[0][i]=j-0.5
+            rects=ax.bar(timepeaks[0],timepeaks[1],label=u'Трафик за день')
+            # Создаем подписи для файлов
+            for i,rect in enumerate(rects):
+                height = rect.get_height()
+                traf=timepeaks[1][i]
+                if traf==0:
+                    continue
+                ax.text(rect.get_x()+rect.get_width()/1.5, 1.05*height, '%.2f'%traf,
+                ha='center', va='bottom',rotation='vertical',color='green')
+            ax.grid(True)
             plt.xlabel(u"Дни %s"%(_Months[sessions[0].begin.month].lower()))
             plt.ylabel("MB")
-            plt.legend(loc='best')
+            ax.legend(loc='best')
             plt.xticks(range(1,timepeaks[2]+1))
             if title:
                 plt.title(title)

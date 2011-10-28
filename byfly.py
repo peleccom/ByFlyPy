@@ -26,7 +26,6 @@ import getpass
 import os.path
 __VERSION__='2.0'
 __FIGURE_FORMATS__=['png', 'pdf', 'svg','eps','ps']
-p=optparse.OptionParser(description=u'Проверка баланса ByFly',prog='ByFlyPy',version=u'%%prog %s'%__VERSION__)
 
 def checkimagefilename(option, opt_str, value, parser):
     '''Check image format'''
@@ -39,6 +38,7 @@ def checkimagefilename(option, opt_str, value, parser):
     else:
         raise optparse.OptionValueError("option -s: Not correct file format. Use formats: %s"%__FIGURE_FORMATS__)
 
+p=optparse.OptionParser(description=u'Проверка баланса ByFly',prog='ByFlyPy',version=u'%%prog %s'%__VERSION__)
 p.add_option("-i",action="store_true",dest="interactive",help="Enable interactive mode")
 p.add_option("-l","--login",action="store",type="string",dest="login",help='Login')
 p.add_option("--list",type="string",dest="check_list",metavar='<filename>',help="Check accounts in file. Each line of file must be login:password")
