@@ -21,7 +21,8 @@ import ByFlyUser
 import sys
 import sqlite3 as db
 import getpass
-p=optparse.OptionParser()
+__VERSION__='2.0'
+p=optparse.OptionParser(description=u'Проверка баланса ByFly',prog='ByFlyPy',version=u'%%prog %s'%__VERSION__)
 #
 ##u=ByFlyUser.ByFlyUser('','')
 ##sessions=u.GetLog(fromfile='c:\\tmp\\1.csv')
@@ -31,13 +32,13 @@ p=optparse.OptionParser()
 ##sys.exit()
 #
 p.add_option("-i",action="store_true",dest="interactive",help="Enable interactive mode")
-p.add_option("-l","--login",action="store",type="string",dest="login")
+p.add_option("-l","--login",action="store",type="string",dest="login",help='Login')
 p.add_option("--list",type="string",dest="check_list",metavar='<filename>',help="Check accounts in file. Each line of file must be login:password")
-p.add_option("-p","--p",action="store",type="string",dest="password")
-p.add_option("-g","--graph",action="store_true",dest="graph",help="Plot a graph")
+p.add_option("-p","--p",action="store",type="string",dest="password",help='Password')
+p.add_option("-g","--graph",action="store",dest="graph",type='choice',help="Plot a graph. Parameters MUST BE 'traf' or 'plot'",choices=['traf','time'])
 p.set_defaults(
                 interactive=False,
-                graph=False
+                graph=None
                 )
 if len(sys.argv)==1:
     p.print_help()
@@ -107,8 +108,9 @@ else:
         user.PrintInfo()
         if opt.graph:
             plt=plotinfo.Plotter()
-            plt.PlotTimeAllocation(user.GetLog(),title=user.info)
-            print plt._get_traf_peaks(user.GetLog())
-            #plt.PlotTrafAllocation(user.GetLog())
+            if opt.graph=='time':
+                plt.PlotTimeAllocation(user.GetLog(),title=user.info)
+            elif opt.graph=='traf':
+                plt.PlotTrafAllocation(user.GetLog(),title=user.info)
     else:
         print "Can't Log: "+user.LastError()

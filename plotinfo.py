@@ -83,7 +83,6 @@ class Plotter(object):
             plt.ylabel("MB")
             plt.legend(loc='best')
             plt.xticks(range(1,timepeaks[2]+1))
-            plt.axes([1,timepeaks[2],0,1000])
             if title:
                 plt.title(title)
             if fname:
