@@ -35,7 +35,8 @@ p.add_option("-i",action="store_true",dest="interactive",help="Enable interactiv
 p.add_option("-l","--login",action="store",type="string",dest="login",help='Login')
 p.add_option("--list",type="string",dest="check_list",metavar='<filename>',help="Check accounts in file. Each line of file must be login:password")
 p.add_option("-p","--p",action="store",type="string",dest="password",help='Password')
-p.add_option("-g","--graph",action="store",dest="graph",type='choice',help="Plot a graph. Parameters MUST BE 'traf' or 'plot'",choices=['traf','time'])
+p.add_option("-g","--graph",action="store",dest="graph",type='choice',help="Plot a graph. Parameters MUST BE traf or time ",choices=['traf','time'])
+p.add_option("-s","--save",dest="imagefilename",help='save graph to file')
 p.set_defaults(
                 interactive=False,
                 graph=None

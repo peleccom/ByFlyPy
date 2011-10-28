@@ -57,7 +57,7 @@ class Plotter(object):
         maxday=calendar.monthrange(BeginDate.year,BeginDate.month)[1]
         result=[x1,y1,maxday]
         return result
-    def PlotTimeAllocation(self,sessions,fname=None,title=None):
+    def PlotTimeAllocation(self,sessions,fname=None,title=None,show=True):
         if not sessions:
             return False
         timepeaks=self._get_time_peaks(sessions)
@@ -73,8 +73,9 @@ class Plotter(object):
             plt.title(title)
         if fname:
             plt.savefig(fname)
-        plt.show()
-    def PlotTrafAllocation(self,sessions,fname=None,title=None):
+        if show:
+            plt.show()
+    def PlotTrafAllocation(self,sessions,fname=None,title=None,show=True):
             timepeaks=self._get_traf_peaks(sessions)
             plt.clf()
             plt.bar(timepeaks[0],timepeaks[1],label=u'Трафик за день')
@@ -87,4 +88,5 @@ class Plotter(object):
                 plt.title(title)
             if fname:
                 plt.savefig(fname)
-            plt.show()
+            if show:
+                plt.show()
