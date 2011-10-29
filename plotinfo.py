@@ -21,6 +21,20 @@ import datetime
 ##mpl.rcParams['font.monospace']="Arial"
 mpl.rcParams['font.sans-serif']="Tahoma, Arial, DejaVu Serif"
 _Months={1:u'Января',2:u'Февраля',3:u'Марта',4:u'Апреля',5:u'Мая',6:u'Июня',7:u'Июля',8:u'Августа',9:u'Сентября',10:u'Октября',11:u'Ноября',12:u'Декабря'}
+def _getweekends(date):
+    '''Get date and return list of weekeds in this month'''
+    if not type(date)==datetime.datetime:
+        return
+    try:
+        for i in range(1,32):
+            day=date.replace(day=i)
+            if day.weekday()>4:
+                yield i
+    except:
+        return
+
+
+
 class Plotter(object):
     """
         Class for plotting
@@ -67,7 +81,9 @@ class Plotter(object):
         plt.xlabel(u"Дни %s"%(_Months[sessions[0].begin.month].lower()))
         plt.ylabel(u"Время")
         plt.legend(loc='best')
-        plt.xticks(range(1,timepeaks[2]+1))
+        _,la=plt.xticks(range(1,timepeaks[2]+1))
+        for i in _getweekends(sessions[0].begin):
+            la[i-1].set_backgroundcolor('red')
         plt.yticks(range(24))
         if title:
             plt.title(title)
@@ -79,6 +95,8 @@ class Plotter(object):
         if show:
             plt.show()
     def PlotTrafAllocation(self,sessions,fname=None,title=None,show=True):
+            if not sessions:
+                return False
             timepeaks=self._get_traf_peaks(sessions)
             #plt.clf()
             fig = plt.figure()
@@ -98,7 +116,9 @@ class Plotter(object):
             plt.xlabel(u"Дни %s"%(_Months[sessions[0].begin.month].lower()))
             plt.ylabel("MB")
             ax.legend(loc='best')
-            plt.xticks(range(1,timepeaks[2]+1))
+            _,la=plt.xticks(range(1,timepeaks[2]+1))
+            for i in _getweekends(sessions[0].begin):
+                la[i-1].set_backgroundcolor('red')
             if title:
                 plt.title(title)
             if fname:
