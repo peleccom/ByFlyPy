@@ -74,7 +74,7 @@ class ByFlyUser:
         if type(self._LastErr)==int:
             return M_DICT[self._LastErr]
         else:
-            return self._LastErr
+            return u"%s"%self._LastErr
     def ErrorParser(self,html):
         '''Parse html and return 'OK' ,error representation string or None'''
         err1=u'Вы слишком часто пытаетесь войти в систему'

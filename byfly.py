@@ -7,16 +7,10 @@
 # Author:      Александр
 #
 # Created:     28.10.2011
-# Copyright:   (c) Александр 2011
+# Copyright:   (c) Александр -2011
 #-------------------------------------------------------------------------------
 #To install MatPlotLib in Debian/Ubuntu Linux run
 # > sudo apt-get install python-matplotlib
-try:
-    import plotinfo
-    Has_Matplot=True
-except:
-    print ("Warning: MatPlotlib not installed - Plotting not working.")
-    Has_Matplot=False
 import optparse
 import time
 import ByFlyUser
@@ -24,8 +18,36 @@ import sys
 import sqlite3 as db
 import getpass
 import os.path
+try:
+    import plotinfo
+    Has_Matplot=True
+except:
+    print ("Warning: MatPlotlib not installed - Plotting not working.")
+    Has_Matplot=False
 __VERSION__='2.0'
 __FIGURE_FORMATS__=['png', 'pdf', 'svg','eps','ps']
+
+def UI(opt,showgraph=None):
+    '''Output all information. If showgraph=='always' graph show and save to file'''
+    user=ByFlyUser.ByFlyUser(opt.login,opt.password)
+    if user.Login():
+        user.PrintInfo()
+        if opt.graph and Has_Matplot:
+            plt=plotinfo.Plotter()
+            if  opt.imagefilename:
+                fname=opt.imagefilename
+                show=False
+            else:
+                show=True
+                fname=None
+            if showgraph=='always':
+                show=True
+            if opt.graph=='time':
+                plt.PlotTimeAllocation(user.GetLog(),title=user.info,show=show,fname=fname)
+            elif opt.graph=='traf':
+                plt.PlotTrafAllocation(user.GetLog(),title=user.info,show=show,fname=fname)
+    else:
+        print "Can't Log: "+user.LastError()
 
 def checkimagefilename(option, opt_str, value, parser):
     '''Check image format'''
@@ -93,16 +115,14 @@ if opt.interactive:
                 a=raw_input("Plot graph? [y/n]")
                 if a=='y' or a=='Y':
                     opt.graph=True
+                    a=raw_input("Which kind of graph [time/traf]")
+                    if a=='time':
+                        opt.graph='time'
+                    elif a=='traf':
+                        opt.graph='traf'
                 elif a=='n' or a=='N':
                     opt.graph=False
-            user=ByFlyUser.ByFlyUser(opt.login,opt.password)
-            if user.Login():
-                user.PrintInfo()
-                if opt.graph and Has_Matplot:
-                    plt=plotinfo.Plotter()
-                    plt.PlotTrafAllocation(user.GetLog(),title=user.info)
-            else:
-                print "Can't Log: "+user.LastError()
+                UI(opt)
             a=raw_input("Print something if you want to continue")
     except Exception,e:
         print e
@@ -114,29 +134,22 @@ elif opt.check_list:
             lp=line.strip().partition(':')
             if lp[2]=='':
                 continue
-            print("*"*40)
-            user=ByFlyUser.ByFlyUser(lp[0],lp[2])
-            if user.Login():
-                user.PrintInfo()
-                if opt.graph and Has_Matplot:
-                    if opt.imagefilename:
-                        fname=opt.imagefilename
-                        # Заменим имя файла на логин
-                        basename=os.path.basename(fname)
-                        no_ext=basename.partition('.')[0]
-                        fname=fname.replace(no_ext,lp[0])
-                        show=False
-                    else:
-                        fname=False
-                        show=True
-                    plt=plotinfo.Plotter()
-                    if opt.graph=='time':
-                        plt.PlotTimeAllocation(user.GetLog(),title=user.info,fname=fname,show=show)
-                    elif opt.graph=='traf':
-                        plt.PlotTrafAllocation(user.GetLog(),title=user.info,fname=fname,show=show)
+            print(lp[0].center(40,'*'))
+            opt.login=lp[0]
+            opt.password=lp[2]
+            if opt.imagefilename:
+                fname=opt.imagefilename
+                # Заменим имя файла на логин
+                basename=os.path.basename(fname)
+                no_ext=basename.partition('.')[0]
+                fname=fname.replace(no_ext,lp[0])
+                show=False
             else:
-                print('%s- %s'%(lp[0],user.LastError()))
-            print("*"*40+'\n')
+                fname=None
+                show=True
+            opt.imagefilename=fname
+            UI(opt)
+            print("".center(40,'*')+'\n')
     except IOError,e:
         print "%s"%e
 else:
@@ -144,20 +157,5 @@ else:
         sys.exit()
     if not opt.password:
         sys.exit()
-    user=ByFlyUser.ByFlyUser(opt.login,opt.password)
-    if user.Login():
-        user.PrintInfo()
-        if opt.graph and Has_Matplot:
-            if opt.imagefilename:
-                fname=opt.imagefilename
-                show=False
-            else:
-                fname=False
-                show=true
-            plt=plotinfo.Plotter()
-            if opt.graph=='time':
-                plt.PlotTimeAllocation(user.GetLog(),title=user.info,fname=fname,show=show)
-            elif opt.graph=='traf':
-                plt.PlotTrafAllocation(user.GetLog(),title=user.info,fname=fname,show=show)
-    else:
-        print "Can't Log: "+user.LastError()
+    #command line
+    UI(opt)

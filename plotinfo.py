@@ -85,7 +85,7 @@ class Plotter(object):
             ax = fig.add_subplot(111)
             for i,j in enumerate(timepeaks[0]):
                 timepeaks[0][i]=j-0.5
-            rects=ax.bar(timepeaks[0],timepeaks[1],label=u'Трафик за день')
+            rects=ax.bar(timepeaks[0],timepeaks[1],width=0.5,label=u'Трафик за день')
             # Создаем подписи для файлов
             for i,rect in enumerate(rects):
                 height = rect.get_height()
