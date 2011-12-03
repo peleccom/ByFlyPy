@@ -46,7 +46,7 @@ class Plotter(object):
         """traf in days of month"""
         x1={}
         BeginDate=datetime.datetime(sessions[0].begin.year,sessions[0].begin.month,1)  ## Can be 1-th day of month
-        EndDate=datetime.datetime(sessions[-1].begin.year,sessions[-1].begin.month+1,1) ##first day of next month
+        EndDate=datetime.datetime(sessions[-1].begin.year,(sessions[-1].begin.month+1) % 12, 1) ##first day of next month
         x=BeginDate
         maxday=calendar.monthrange(BeginDate.year,BeginDate.month)[1]
         for i in range(1,maxday+1):
@@ -59,7 +59,7 @@ class Plotter(object):
         x1=[]  ## Day
         y1=[]   ##time of connectoin
         BeginDate=datetime.datetime(sessions[0].begin.year,sessions[0].begin.month,1)  ## Can be 1-th day of month
-        EndDate=datetime.datetime(sessions[-1].begin.year,sessions[-1].begin.month+1,1) ##first day of next month
+        EndDate=datetime.datetime(sessions[-1].begin.year,(sessions[-1].begin.month+1) % 12, 1) ##first day of next month
         x=BeginDate
         dx=datetime.timedelta(minutes=1)
         for session in sessions:
