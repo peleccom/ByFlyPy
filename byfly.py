@@ -122,7 +122,7 @@ if opt.interactive:
                         opt.graph='traf'
                 elif a=='n' or a=='N':
                     opt.graph=False
-                UI(opt)
+            UI(opt)
             a=raw_input("Print something if you want to continue")
     except Exception,e:
         print e
