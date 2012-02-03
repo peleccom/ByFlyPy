@@ -30,7 +30,7 @@ M_DICT = {
          M_OK:u'OK',
          M_NONE:u'Неизвестная ошибка'
          }
-_DEBUG_ = True
+_DEBUG_ = False
 class Session(object):
     """
         Internet session class

@@ -91,6 +91,7 @@ p.add_option("-p","--p",action="store",type="string",dest="password",help='Passw
 p.add_option("-g","--graph",action="store",dest="graph",type='choice',help="Plot a graph. Parameters MUST BE traf or time ",choices=['traf','time'])
 p.add_option("-s","--save",action='callback',help='save graph to file',callback=checkimagefilename,type='string')
 p.add_option("-n", "--nologo", action='store_true', dest='nologo' , help="Don't show logo at startup")
+p.add_option("--pause",action="store_true", dest="pause", help="Don't close console window immediately")
 p.set_defaults(
                 interactive=False,
                 graph=None,
@@ -175,3 +176,4 @@ else:
             sys.exit()
     #command line
     UI(opt)
+    raw_input("Press <Enter> to close")
