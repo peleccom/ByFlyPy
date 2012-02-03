@@ -24,9 +24,32 @@ try:
 except:
     print ("Warning: MatPlotlib not installed - Plotting not working.")
     Has_Matplot=False
-__VERSION__='2.0'
+__VERSION__='2.1'
 __FIGURE_FORMATS__=['png', 'pdf', 'svg','eps','ps']
 
+
+def PassFromDB(login):
+    """Get password from database file. Return password or None """
+    password = None
+    try:
+        c=db.connect("users.db")
+        c.row_factory = db.Row #
+        cu=c.cursor()
+        cu.execute('SELECT * FROM USERS WHERE login=? or alias=?',[login,login])
+        row=cu.fetchone()
+        if row!=None:
+            print (u'Пароль взят из БД')
+            password = row['pass']
+            try:
+                ## если введенный логин не число то это алиас в базе данных
+                k=int(login)
+            except:
+                opt.login=row['login']
+    except Exception,e:
+        print e.message
+    finally:
+        c.close()
+        return password
 def UI(opt,showgraph=None):
     '''Output all information. If showgraph=='always' graph show and save to file'''
     user=ByFlyUser.ByFlyUser(opt.login,opt.password)
@@ -67,15 +90,24 @@ p.add_option("--list",type="string",dest="check_list",metavar='<filename>',help=
 p.add_option("-p","--p",action="store",type="string",dest="password",help='Password')
 p.add_option("-g","--graph",action="store",dest="graph",type='choice',help="Plot a graph. Parameters MUST BE traf or time ",choices=['traf','time'])
 p.add_option("-s","--save",action='callback',help='save graph to file',callback=checkimagefilename,type='string')
+p.add_option("-n", "--nologo", action='store_true', dest='nologo' , help="Don't show logo at startup")
 p.set_defaults(
                 interactive=False,
                 graph=None,
-                imagefilename=None
+                imagefilename=None,
+                nologo = False
                 )
+
+## print help
 if len(sys.argv)==1:
     p.print_help()
     sys.exit()
+
 opt,args=p.parse_args()
+
+if not opt.nologo:
+    p.print_version()
+
 if opt.interactive:
     try:
         a=True
@@ -85,26 +117,7 @@ if opt.interactive:
                 print "Incorrect data"
                 sys.exit(1)
             opt.login=a
-            try:
-                c=db.connect("users.db")
-                c.row_factory = db.Row
-                cu=c.cursor()
-                cu.execute('SELECT * FROM USERS WHERE login=? or alias=?',[a,a])
-                row=cu.fetchone()
-                if row!=None:
-                    print (u'Пароль взят из БД')
-                    a=row['pass']
-                    try:
-                        ## если введенный логин не число то это алиас в базе данных
-                        k=int(opt.login)
-                    except:
-                        opt.login=row['login']
-                else:
-                    a=None
-            except Exception,e:
-                print e.message
-            finally:
-                c.close()
+            a = PassFromDB(opt.login)
             if a==None:
                 a=getpass.getpass("Password:")
             if a=='':
@@ -127,6 +140,7 @@ if opt.interactive:
     except Exception,e:
         print e
         sys.exit(1)
+
 elif opt.check_list:
     try:
         list=open(opt.check_list,'rt')
@@ -156,6 +170,8 @@ else:
     if not opt.login:
         sys.exit()
     if not opt.password:
-        sys.exit()
+        opt.password = PassFromDB(opt.login)
+        if not opt.password:
+            sys.exit()
     #command line
     UI(opt)
