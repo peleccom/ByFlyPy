@@ -24,6 +24,11 @@ __FIGURE_FORMATS__=['png', 'pdf', 'svg','eps','ps']
 
 Has_Matplot=False
 
+
+def pause():
+    """Show 'press any key'"""
+    raw_input("Press <Enter> to close")
+
 def ImportPlot():
     global plotinfo
     global Has_Matplot
@@ -32,8 +37,9 @@ def ImportPlot():
     except:
         try:
 
-            print("Import Plotting. Wait a few seconds")
+            print("Enabling plotting. Wait a few seconds...")
             import plotinfo
+            print("All OK. Plotting enabled")
             Has_Matplot=True
 
         except:
@@ -131,6 +137,11 @@ elif opt.debug == "no":
     opt.debug = False
 ByFlyUser._DEBUG_ = opt.debug
 
+#pause at exit?
+if opt.pause:
+    import atexit
+    atexit.register(pause)
+
 if not opt.nologo:
     p.print_version()
 
@@ -214,4 +225,3 @@ else:
             sys.exit()
     #command line
     UI(opt)
-    raw_input("Press <Enter> to close")
