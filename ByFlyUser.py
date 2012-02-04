@@ -107,7 +107,7 @@ class ByFlyUser:
             if _DEBUG_:
                 open(self._Log1, 'w+').write(html.encode('cp1251'))
         except urllib2.URLError, error:
-            self._SetLastError(error.reason)
+            self._SetLastError(error)
             return False
         res = self.ErrorParser(html)
         k = None

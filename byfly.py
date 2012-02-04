@@ -18,15 +18,26 @@ import sys
 import sqlite3 as db
 import getpass
 import os.path
-try:
-    import plotinfo
-    Has_Matplot=True
-except:
-    print ("Warning: MatPlotlib not installed - Plotting not working.")
-    Has_Matplot=False
 __VERSION__='2.1'
 __FIGURE_FORMATS__=['png', 'pdf', 'svg','eps','ps']
 
+
+Has_Matplot=False
+
+def ImportPlot():
+    global plotinfo
+    global Has_Matplot
+    try:
+        dir(plotinfo)
+    except:
+        try:
+
+            print("Import Plotting. Wait a few seconds")
+            import plotinfo
+            Has_Matplot=True
+
+        except:
+            print ("Warning: MatPlotlib not installed - Plotting not working.")
 
 def PassFromDB(login):
     """Get password from database file. Return password or None """
@@ -50,8 +61,12 @@ def PassFromDB(login):
     finally:
         c.close()
         return password
+
+
 def UI(opt,showgraph=None):
     '''Output all information. If showgraph=='always' graph show and save to file'''
+    if opt.graph:
+        ImportPlot()
     user=ByFlyUser.ByFlyUser(opt.login,opt.password)
     if user.Login():
         user.PrintInfo()
@@ -92,19 +107,29 @@ p.add_option("-g","--graph",action="store",dest="graph",type='choice',help="Plot
 p.add_option("-s","--save",action='callback',help='save graph to file',callback=checkimagefilename,type='string')
 p.add_option("-n", "--nologo", action='store_true', dest='nologo' , help="Don't show logo at startup")
 p.add_option("--pause",action="store_true", dest="pause", help="Don't close console window immediately")
+p.add_option("--debug", action="store", type="choice", dest="debug" , choices=['yes','no'], help="Debug yes/no")
 p.set_defaults(
                 interactive=False,
                 graph=None,
                 imagefilename=None,
-                nologo = False
+                nologo = False,
+                debug = False
                 )
 
-## print help
+
+# print help
 if len(sys.argv)==1:
     p.print_help()
     sys.exit()
 
 opt,args=p.parse_args()
+
+# Enable/Disable Debug mode
+if opt.debug == "yes":
+    opt.debug = True
+elif opt.debug == "no":
+    opt.debug = False
+ByFlyUser._DEBUG_ = opt.debug
 
 if not opt.nologo:
     p.print_version()
@@ -125,6 +150,7 @@ if opt.interactive:
                 print "Incorrect data"
                 sys.exit(1)
             opt.password=a
+            ImportPlot()
             if Has_Matplot:
                 a=raw_input("Plot graph? [y/n]")
                 if a=='y' or a=='Y':
@@ -137,7 +163,19 @@ if opt.interactive:
                 elif a=='n' or a=='N':
                     opt.graph=False
             UI(opt)
-            a=raw_input("Print something if you want to continue")
+            cont = False
+            while(True):
+                a=raw_input("Continue with another login [y/n]?")
+                if a == 'y':
+                    cont = True
+                    break
+                elif a== 'n':
+                    cont = False
+                    break
+            if cont:
+                continue
+            else:
+                break
     except Exception,e:
         print e
         sys.exit(1)
