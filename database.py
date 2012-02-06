@@ -127,8 +127,11 @@ def main():
                     o.Add(login,password,alias)
                 except:
                     pass
+<<<<<<< HEAD
             if a.startswith('del '):
                 l,_,p = a.partition(" ")
                 o.DeleteEntry(p)
+=======
+>>>>>>> origin/master
 if __name__ == '__main__':
     main()
