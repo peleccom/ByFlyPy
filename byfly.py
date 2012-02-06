@@ -21,6 +21,7 @@ import os.path
 __VERSION__='2.1'
 __FIGURE_FORMATS__=['png', 'pdf', 'svg','eps','ps']
 
+__DEFAULT_DATABASE_FILENAME = 'users.db'
 
 Has_Matplot=False
 
@@ -32,9 +33,7 @@ def pause():
 def ImportPlot():
     global plotinfo
     global Has_Matplot
-    try:
-        dir(plotinfo)
-    except:
+    if not sys.modules.has_key('plotinfo'):
         try:
 
             print("Enabling plotting. Wait a few seconds...")
@@ -47,27 +46,18 @@ def ImportPlot():
 
 def PassFromDB(login):
     """Get password from database file. Return password or None """
-    password = None
+    import database
     try:
-        c=db.connect("users.db")
-        c.row_factory = db.Row #
-        cu=c.cursor()
-        cu.execute('SELECT * FROM USERS WHERE login=? or alias=?',[login,login])
-        row=cu.fetchone()
-        if row!=None:
-            print (u'Пароль взят из БД')
-            password = row['pass']
-            try:
-                ## если введенный логин не число то это алиас в базе данных
-                k=int(login)
-            except:
-                opt.login=row['login']
+        o = database.DBLogin(DATABASE_FILENAME)
+        res = o.GetPassword(login)
+        if res:
+            opt.login = res[0]
+            return res[1]
+        else:
+            return None
     except Exception,e:
-        print e.message
-    finally:
-        c.close()
-        return password
-
+        print e
+        return None
 
 def UI(opt,showgraph=None):
     '''Output all information. If showgraph=='always' graph show and save to file'''
@@ -145,6 +135,7 @@ if opt.pause:
 if not opt.nologo:
     p.print_version()
 
+DATABASE_FILENAME = __DEFAULT_DATABASE_FILENAME
 if opt.interactive:
     try:
         a=True
