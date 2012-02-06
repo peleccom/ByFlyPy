@@ -104,6 +104,7 @@ p.add_option("-s","--save",action='callback',help='save graph to file',callback=
 p.add_option("-n", "--nologo", action='store_true', dest='nologo' , help="Don't show logo at startup")
 p.add_option("--pause",action="store_true", dest="pause", help="Don't close console window immediately")
 p.add_option("--debug", action="store", type="choice", dest="debug" , choices=['yes','no'], help="Debug yes/no")
+p.add_option("--db", action="store", type="string", dest="db" , help="Database filename")
 p.set_defaults(
                 interactive=False,
                 graph=None,
@@ -134,8 +135,10 @@ if opt.pause:
 
 if not opt.nologo:
     p.print_version()
-
-DATABASE_FILENAME = __DEFAULT_DATABASE_FILENAME
+if opt.db:
+    DATABASE_FILENAME = opt.db
+else:
+    DATABASE_FILENAME = __DEFAULT_DATABASE_FILENAME
 if opt.interactive:
     try:
         a=True
