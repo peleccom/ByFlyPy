@@ -31,6 +31,11 @@ M_DICT = {
          M_NONE:u'Неизвестная ошибка'
          }
 _DEBUG_ = False
+
+# Единицы измерения
+TIME_MEASURE = u'(мин.:сек.)'
+TRAF_MEASURE = u'Мб'
+MONEY_MEASURE = u'руб'
 class Session(object):
     """
         Internet session class
@@ -173,8 +178,8 @@ tarif,FIO,traf,balance,duration
         else:
             self._SetLastError(u'Не определен баланс')
             return False
-        s=str(k.get('traf'))+' MB' if k.get('traf') else k.get('duration')
-        self.info="%s - %s\n%s- %s"%(k.get("FIO"),k.get('tarif'),k.get('balance'),s)
+        s=str(k.get('traf'))+' '+TRAF_MEASURE if k.get('traf') else k.get('duration') + ' ' + TIME_MEASURE
+        self.info=u"%s - %s\n%s %s - %s"%(k.get("FIO"),k.get('tarif'),k.get('balance'),MONEY_MEASURE,s)
         return k
 
     def GetLogRaw(self,period='current',fromfile=None,encoding='cp1251'):
@@ -255,17 +260,17 @@ tarif,FIO,traf,balance,duration
             print ("Error "+self.LastError())
             return False
         if info.get('traf'):
-            traf = u"Трафик  - %s" % info.get('traf')
+            traf = u"Трафик  - %s %s" % (info.get('traf'),TRAF_MEASURE)
         else:
             traf = ''
         if info.get('duration'):
-            duration = u"Длительность  - %s" % info.get('duration')
+            duration = u"Длительность  - %s %s" % (info.get('duration'), TIME_MEASURE)
         else:
             duration = ''
         print (u'''\
 Абонент - %s
 Тариф   - %s
-Баланс  - %s
+Баланс  - %s руб
 %s
 %s\
         '''%(info.get('FIO'), info.get('tarif'),
