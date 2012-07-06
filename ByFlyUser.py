@@ -270,9 +270,9 @@ tarif,FIO,traf,balance,duration
         print (u'''\
 Абонент - %s
 Тариф   - %s
-Баланс  - %s руб
+Баланс  - %s %s
 %s
 %s\
         '''%(info.get('FIO'), info.get('tarif'),
-         info.get('balance'), traf, duration))
+         info.get('balance'), MONEY_MEASURE, traf, duration))
         return True
