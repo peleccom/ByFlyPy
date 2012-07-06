@@ -13,6 +13,7 @@ import cookielib
 import urllib
 import urllib2
 import time
+import datetime
 import re
 import UnicodeCSV
 import datetime
@@ -49,6 +50,7 @@ class Session(object):
         self.ingoing = ingoing
         self.outgoing = outgoing
         self.cost = cost
+
     def __str__(self):
         return "Session<%s  %s>" % (self.begin, self.end)
 class ByFlyUser:
@@ -64,6 +66,7 @@ class ByFlyUser:
     _User_Agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/534.13 (KHTML, like Gecko) Chrome/9.0.597.84 Safari/534.13'
     _Login_Page = 'https://issa.beltelecom.by/cgi-bin/cgi.exe?function=is_login'
     _Account_Page = 'https://issa.beltelecom.by/cgi-bin/cgi.exe?function=is_account'
+
     def __init__(self, login, password):
         self._login = login
         self._password = password
@@ -83,6 +86,7 @@ class ByFlyUser:
             return M_DICT[self._LastErr]
         else:
             return u"%s" % self._LastErr
+
     def ErrorParser(self, html):
         '''Parse html and return 'OK' ,error representation string or None'''
         err1 = u'Вы слишком часто пытаетесь войти в систему'
@@ -101,6 +105,7 @@ class ByFlyUser:
         if html.find(err4) != -1:
             return M_OK
         return M_NONE
+
     def Login(self):
         '''Function log into byfly profile. Return True if sucess'''
         if not self._login and not self._password:
@@ -208,6 +213,7 @@ tarif,FIO,traf,balance,duration
                 self._SetLastError(str(e))
                 return False
         return rawcsv
+
     def _parsesessions(self,row,title):
         """parsing a row of cvs file"""
         try:
@@ -220,9 +226,14 @@ tarif,FIO,traf,balance,duration
                     end = datetime.datetime.strptime(row[i], '%d.%m.%Y  %H:%M:%S')
                 elif l == u'Длительность':
                     try:
-                        duration = time.strptime(row[i], "%d.%H:%M:%S")
+                        ttuple = time.strptime(row[i], "%d.%H:%M:%S")[2:6]
+                        duration = datetime.timedelta(days = ttuple[0],
+                            hours = ttuple[1], minutes = ttuple[2],
+                            seconds = ttuple[3])
                     except Exception, e:
-                        duration = time.strptime(row[i], "%H:%M:%S")
+                        ttuple = time.strptime(row[i], "%H:%M:%S")[3:6]
+                        duration = datetime.timedelta(hours = ttuple[0],
+                            minutes = ttuple[1], seconds = ttuple[2])
                 elif l == u'Вх. трафик':
                     m = re.search(u"(\d*\.\d{0,5}).*?(Мб*)", row[i])
                     if len(m.groups())==2:
@@ -243,6 +254,25 @@ tarif,FIO,traf,balance,duration
         except Exception, e:
             self._SetLastError(str(e))
             return None
+
+    def SummarySessions(self, sessions):
+        '''Calculate summary info about sessions and return dictionary representing\
+(cost,duration,traf)'''
+        Cost = 0
+        Duration = datetime.timedelta()
+        Traf = 0
+        for session in sessions:
+            if hasattr(session, 'cost'):
+                Cost += session.cost
+            if hasattr(session, 'ingoing'):
+                Traf += session.ingoing
+            if hasattr(session, 'outgoing'):
+                Traf += session.outgoing
+            if hasattr(session, 'duration'):
+                Duration += session.duration
+
+        return {'cost': Cost, 'duration': Duration, 'traf': Traf}
+
     def GetLog(self, period='current', fromfile=None,
     encoding='cp1251'):
         """Return report of using connection. period='curent' or 'previous' """
@@ -253,6 +283,7 @@ tarif,FIO,traf,balance,duration
         title=reader.next()
         it = [k for k in [self._parsesessions(i, title) for i in reader] if k][::-1]
         return it
+
     def PrintInfo(self):
         '''Call GetInfo() and print'''
         info = self.GetInfo()
@@ -276,3 +307,15 @@ tarif,FIO,traf,balance,duration
         '''%(info.get('FIO'), info.get('tarif'),
          info.get('balance'), traf, duration))
         return True
+
+    def PrintAdditionInfo(self,period = None):
+        '''Print summary information about sessions'''
+        s = (u'-'*20).center(40)+'\n'
+        summary = self.SummarySessions(self.GetLog(period))
+        format_args = summary
+        format_args.update(globals())
+        s += u'''\
+Суммарный трафик - %(traf)s %(TRAF_MEASURE)s
+Превышение стоимости - %(cost)s %(MONEY_MEASURE)s
+Суммарное время online - %(duration)s'''%(format_args)
+        print (s)
