@@ -34,7 +34,6 @@ M_DICT = {
 _DEBUG_ = False
 
 # Единицы измерения
-TIME_MEASURE = u'(мин.:сек.)'
 TRAF_MEASURE = u'Мб'
 MONEY_MEASURE = u'руб'
 class Session(object):
@@ -166,7 +165,18 @@ tarif,FIO,traf,balance,duration
         if m:
             s=m.group(1)
             s=s.strip()
-            k['duration']=s
+            comp = s.split(':')
+            comp = map(int,comp)
+            if len(comp) == 2:
+                #min:sec
+                k['duration'] = datetime.timedelta(minutes=comp[0], seconds=comp[1])
+            elif len(comp) == 1:
+                #sec
+                k['duration'] = datetime.timedelta(seconds=comp[0])
+            else:
+                #zero field?
+                k['duration'] = datetime.timedelta()
+            
         m=re.search(u'суммарный.трафик</td>.*?<td.align=center>.*?;(\d*(\.(\d*))?)',html,16)
         if m:
             s=m.group(1)
@@ -183,7 +193,7 @@ tarif,FIO,traf,balance,duration
         else:
             self._SetLastError(u'Не определен баланс')
             return False
-        s=str(k.get('traf'))+' '+TRAF_MEASURE if k.get('traf') else k.get('duration') + ' ' + TIME_MEASURE
+        s=str(k.get('traf'))+' '+TRAF_MEASURE if k.get('traf') else k.get('duration')
         self.info=u"%s - %s\n%s %s - %s"%(k.get("FIO"),k.get('tarif'),k.get('balance'),MONEY_MEASURE,s)
         return k
 
@@ -295,7 +305,7 @@ tarif,FIO,traf,balance,duration
         else:
             traf = ''
         if info.get('duration'):
-            duration = u"Длительность  - %s %s" % (info.get('duration'), TIME_MEASURE)
+            duration = u"Длительность  - %s" % (info.get('duration'))
         else:
             duration = ''
         print (u'''\
