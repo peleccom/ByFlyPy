@@ -214,7 +214,7 @@ tarif,FIO,traf,balance,duration
                 rawcsv=req.read().decode('cp1251')
             except Exception,e:
                 self._SetLastError(str(e))
-                return false
+                return False
         else:
             try:
                 import codecs
