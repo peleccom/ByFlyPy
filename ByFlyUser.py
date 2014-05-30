@@ -63,8 +63,9 @@ class ByFlyUser:
     _Log2 = '2.html'
     _LastErr = ''
     _User_Agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/534.13 (KHTML, like Gecko) Chrome/9.0.597.84 Safari/534.13'
-    _Login_Page = 'https://issa.beltelecom.by/cgi-bin/cgi.exe?function=is_login'
-    _Account_Page = 'https://issa.beltelecom.by/cgi-bin/cgi.exe?function=is_account'
+    _Login_Page = 'https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_login'
+    _Account_Page = 'https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_account'
+
 
     def __init__(self, login, password):
         self._login = login
@@ -207,10 +208,10 @@ tarif,FIO,traf,balance,duration
                     periods='CURRENT'
                 elif period=='previous':
                     periods='0'
-                req=self._opener.open('https://issa.beltelecom.by/cgi-bin/cgi.exe?function=is_lastcalls',urllib.urlencode([('periods',periods),('action','setperiod'),('x','17'),('y','15')]))
-                req=self._opener.open('https://issa.beltelecom.by/cgi-bin/cgi.exe?function=is_lastcalls&action=refresh')
-                req=self._opener.open('https://issa.beltelecom.by/cgi-bin/cgi.exe?function=is_lastcalls&action=setfilter&filter=0')
-                req=self._opener.open('https://issa.beltelecom.by/cgi-bin/cgi.exe?function=is_lastcalls&action=save&repFormat=1&repPostfix=2csv')
+                req=self._opener.open('https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls',urllib.urlencode([('periods',periods),('action','setperiod'),('x','17'),('y','15')]))
+                req=self._opener.open('https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls&action=refresh')
+                req=self._opener.open('https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls&action=setfilter&filter=0')
+                req=self._opener.open('https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls&action=save&repFormat=1&repPostfix=2csv')
                 rawcsv=req.read().decode('cp1251')
             except Exception,e:
                 self._SetLastError(str(e))
