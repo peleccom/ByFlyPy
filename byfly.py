@@ -18,7 +18,7 @@ import sys
 import sqlite3 as db
 import getpass
 import os.path
-__VERSION__='2.3'
+__VERSION__='3.1'
 __FIGURE_FORMATS__=['png', 'pdf', 'svg','eps','ps']
 
 __DEFAULT_DATABASE_FILENAME = 'users.db'

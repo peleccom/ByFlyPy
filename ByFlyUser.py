@@ -15,6 +15,9 @@ import urllib2
 import time
 import datetime
 import re
+import codecs
+
+import requests
 import UnicodeCSV
 import datetime
 M_BAN = 0
@@ -63,7 +66,7 @@ class ByFlyUser:
     _Log2 = '2.html'
     _LastErr = ''
     _User_Agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/534.13 (KHTML, like Gecko) Chrome/9.0.597.84 Safari/534.13'
-    _Login_Page = 'https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_login'
+    _Login_Page = 'https://issa.beltelecom.by/main.html'
     _Account_Page = 'https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_account'
 
 
@@ -77,6 +80,7 @@ class ByFlyUser:
         ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
         ]
         self.info = None
+        self.session  = requests.session()
 
     def _SetLastError(self, error):
         self._LastErr = error
@@ -110,12 +114,18 @@ class ByFlyUser:
         '''Function log into byfly profile. Return True if sucess'''
         if not self._login and not self._password:
             return False
-        data = (('Lang','2'), ('mobnum',self._login), ('Password',self._password))
+        data = {
+        'Lang': 2,
+        'oper_user' :self._login, 
+        'passwd' : self._password
+        }
         enc_data = urllib.urlencode(data)
         try:
-            html = self._opener.open(self._Login_Page, enc_data).read().decode('cp1251')
+            r = self.session.post(self._Login_Page, data=data)
+            html = r.text
             if _DEBUG_:
-                open(self._Log1, 'w+').write(html.encode('cp1251'))
+                with codecs.open(self._Log1, "w+", encoding="utf8") as f:
+                    f.write(html)
         except urllib2.URLError, error:
             self._SetLastError(error)
             return False
@@ -140,7 +150,9 @@ keys:
 tarif,FIO,traf,balance,duration
         '''
         try:
-            html = self._opener.open(self._Account_Page).read().decode('cp1251')
+            r = self.session.get(self._Account_Page)
+            html = r.text
+            import ipdb;ipbd.set_trace()
             if _DEBUG_:
                 dec = html.encode('cp1251')
                 open(self._Log2, 'w+').write(dec)
