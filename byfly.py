@@ -64,9 +64,10 @@ def UI(opt,showgraph=None):
     if opt.graph:
         ImportPlot()
     user=ByFlyUser.ByFlyUser(opt.login,opt.password)
-    if user.Login():
+    if user.login():
         user.PrintInfo()
-        user.PrintAdditionInfo()
+        return
+        # user.PrintAdditionInfo()
         if opt.graph and Has_Matplot:
             plt=plotinfo.Plotter()
             if  opt.imagefilename:

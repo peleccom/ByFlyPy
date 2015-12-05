@@ -20,6 +20,9 @@ import codecs
 import requests
 import UnicodeCSV
 import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 M_BAN = 0
 M_SESSION = 1
 M_WRONG_PASS = 2
@@ -35,6 +38,21 @@ M_DICT = {
          M_NONE:u'Неизвестная ошибка'
          }
 _DEBUG_ = False
+
+
+
+def log_to_file(filename, log_content, force=False):
+    """
+    log text into file
+    :param filename:
+    :param log_content:
+    :param force: force write if _DEBUG=False
+    :return: None
+    """
+    if _DEBUG_ or force:
+        with codecs.open(filename, "w+", encoding="utf8") as f:
+            f.write(log_content)
+
 
 # Единицы измерения
 TRAF_MEASURE = u'Мб'
@@ -55,6 +73,8 @@ class Session(object):
 
     def __str__(self):
         return "Session<%s  %s>" % (self.begin, self.end)
+
+
 class ByFlyUser:
     """Interface to get information
     usage:
@@ -73,12 +93,6 @@ class ByFlyUser:
     def __init__(self, login, password):
         self._login = login
         self._password = password
-        self._cj = cookielib.CookieJar()
-        self._opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self._cj))
-        self._opener.addheaders = [
-        ('User-agent', self._User_Agent ),
-        ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
-        ]
         self.info = None
         self.session  = requests.session()
 
@@ -110,29 +124,30 @@ class ByFlyUser:
             return M_OK
         return M_NONE
 
-    def Login(self):
-        '''Function log into byfly profile. Return True if sucess'''
+    def login(self):
+        """
+        Function log into byfly profile.
+        :return: True if sucess
+        """
         if not self._login and not self._password:
             return False
+        LANG_ID = 2
         data = {
-        'Lang': 2,
-        'oper_user' :self._login, 
-        'passwd' : self._password
+            'Lang': LANG_ID,
+            'oper_user': self._login,
+            'passwd': self._password,
         }
-        enc_data = urllib.urlencode(data)
         try:
             r = self.session.post(self._Login_Page, data=data)
             html = r.text
-            if _DEBUG_:
-                with codecs.open(self._Log1, "w+", encoding="utf8") as f:
-                    f.write(html)
-        except urllib2.URLError, error:
+            log_to_file(self._Log1, html)
+        except Exception as e:
             self._SetLastError(error)
             return False
         res = self.ErrorParser(html)
         k = None
         if res == M_REFRESH:
-            k = self.GetInfo()
+            k = self.get_info()
             if k:
                 return True
             else:
@@ -143,7 +158,7 @@ class ByFlyUser:
         self._SetLastError(res)
         return False
 
-    def GetInfo(self):
+    def get_info(self):
         '''
 parse a main page of cabinet and return dictionary
 keys:
@@ -152,10 +167,7 @@ tarif,FIO,traf,balance,duration
         try:
             r = self.session.get(self._Account_Page)
             html = r.text
-            import ipdb;ipbd.set_trace()
-            if _DEBUG_:
-                dec = html.encode('cp1251')
-                open(self._Log2, 'w+').write(dec)
+            log_to_file(self._Log2, html)
         except Exception, e:
             self._SetLastError(str(e))
             return False
@@ -309,7 +321,7 @@ tarif,FIO,traf,balance,duration
 
     def PrintInfo(self):
         '''Call GetInfo() and print'''
-        info = self.GetInfo()
+        info = self.get_info()
         if not info:
             print ("Error "+self.LastError())
             return False
