@@ -11,6 +11,7 @@
 #-------------------------------------------------------------------------------
 #To install MatPlotLib in Debian/Ubuntu Linux run
 # > sudo apt-get install python-matplotlib
+import logging
 import optparse
 import time
 import ByFlyUser
@@ -129,6 +130,9 @@ if opt.debug == "yes":
 elif opt.debug == "no":
     opt.debug = False
 ByFlyUser._DEBUG_ = opt.debug
+log_level = logging.DEBUG if opt.debug else logging.ERROR
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+
 
 #pause at exit?
 if opt.pause:

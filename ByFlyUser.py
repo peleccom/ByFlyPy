@@ -18,11 +18,22 @@ import re
 import codecs
 
 import requests
+import sys
 import UnicodeCSV
 import datetime
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class ByflyException(Exception):
+    pass
+
+class ByflyBanException(ByflyException):
+    pass
+class ByflyAuthException(ByflyException):
+    pass
+
 M_BAN = 0
 M_SESSION = 1
 M_WRONG_PASS = 2
@@ -38,8 +49,6 @@ M_DICT = {
          M_NONE:u'Неизвестная ошибка'
          }
 _DEBUG_ = False
-
-
 
 def log_to_file(filename, log_content, force=False):
     """
@@ -75,6 +84,8 @@ class Session(object):
         return "Session<%s  %s>" % (self.begin, self.end)
 
 
+
+
 class ByFlyUser:
     """Interface to get information
     usage:
@@ -85,7 +96,6 @@ class ByFlyUser:
     _Log1 = '1.html'
     _Log2 = '2.html'
     _LastErr = ''
-    _User_Agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/534.13 (KHTML, like Gecko) Chrome/9.0.597.84 Safari/534.13'
     _Login_Page = 'https://issa.beltelecom.by/main.html'
     _Account_Page = 'https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_account'
 
@@ -105,21 +115,21 @@ class ByFlyUser:
         else:
             return u"%s" % self._LastErr
 
-    def ErrorParser(self, html):
+    def check_error_message(self, html):
         '''Parse html and return 'OK' ,error representation string or None'''
-        err1 = u'Вы слишком часто пытаетесь войти в систему'
+        err1 = u'Вы совершаете слишком частые попытки авторизации'
         err2 = u'Осуществляется вход в систему'
         err3 = u'Сеанс работы после определенного периода бездействия заканчивается'
         err4 = u'Состояние счета'
-        err5 = u'Введен неверный пароль, либо этот номер заблокирован'
+        err5 = u'Введен неверный пароль или абонент не существует'
         if html.find(err1) != -1:
-            return M_BAN
+            raise ByflyBanException(err1)
         if html.find(err2) != -1:
             return M_REFRESH
         if html.find(err3) != -1:
             return M_SESSION
         if html.find(err5) != -1:
-            return M_WRONG_PASS
+            raise ByflyAuthException(err5)
         if html.find(err4) != -1:
             return M_OK
         return M_NONE
@@ -139,24 +149,33 @@ class ByFlyUser:
         }
         try:
             r = self.session.post(self._Login_Page, data=data)
+            if r.status_code != 200:
+                logger.debug("Login status code is %s", r.status_code)
+                return False
             html = r.text
             log_to_file(self._Log1, html)
         except Exception as e:
-            self._SetLastError(error)
+            logger.exception(e.message)
+            self._SetLastError(e.message)
             return False
-        res = self.ErrorParser(html)
-        k = None
-        if res == M_REFRESH:
-            k = self.get_info()
-            if k:
-                return True
-            else:
-                ## Error while get info
-                return False
-        elif res == M_OK:
-            return True
-        self._SetLastError(res)
-        return False
+        try:
+            res = self.check_error_message(html)
+        except ByflyException as e:
+            logger.exception(e.message)
+            self._SetLastError(e.message)
+            return False
+        # k = None
+        # if res == M_REFRESH:
+        #     k = self.get_info()
+        #     if k:
+        #         return True
+        #     else:
+        #         ## Error while get info
+        #         return False
+        # elif res == M_OK:
+        #     return True
+        # self._SetLastError(res)
+        # return False
 
     def get_info(self):
         '''
