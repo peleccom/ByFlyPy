@@ -49,8 +49,8 @@ def PassFromDB(login):
     """Get password from database file. Return password or None """
     import database
     try:
-        o = database.DBLogin(DATABASE_FILENAME)
-        res = o.GetPassword(login)
+        db_manager = database.DBManager(database.Table(DATABASE_FILENAME))
+        res = db_manager.get_password(login)
         if res:
             opt.login = res[0]
             return res[1]

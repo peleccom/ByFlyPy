@@ -13,6 +13,7 @@
 import sys
 import sqlite3 as db
 import logging
+import getpass
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ class Record(object):
 
     @classmethod
     def from_cursor_row(cls, row):
-        return cls(row['login'], row['pass'], row['alias'], id=row['id'])
+        return cls(row['login'], row['pass'], row['alias'], pk=row['id'])
 
     @property
     def login(self):
@@ -51,11 +52,14 @@ class Record(object):
 
 class Table(object):
     DEFAULT_DB_FILENAME = 'users.db'
-    CREATE_TABLE_SQL = '''CREATE TABLE IF NOT EXISTS USERS (id INTEGER PRIMARY KEY AUTOINCREMENT,
+    SQL_CREATE_TABLE_QUERY = '''CREATE TABLE IF NOT EXISTS USERS (id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 login CHAR(25),
                                 pass CHAR(25),
                                 alias CHAR(25))'''
     SQL_INSERT_QUERY = '''INSERT INTO USERS (login,pass,alias) VALUES (?,?,?)'''
+    SQL_LIST_QUERY = '''SELECT * FROM USERS'''
+    SQL_DELETE_QUERY = '''DELETE FROM USERS WHERE id=?'''
+    SQL_GET_QUERY = '''SELECT * FROM USERS WHERE login=? or alias=?'''
 
     def __init__(self, filename=DEFAULT_DB_FILENAME):
         try:
@@ -74,7 +78,7 @@ class Table(object):
         Create new table
         """
         try:
-            self._connection.execute(self.CREATE_TABLE_SQL)
+            self._connection.execute(self.SQL_CREATE_TABLE_QUERY)
             self._connection.commit()
         except:
             raise ErrorDatabase("Can't create new table")
@@ -95,11 +99,11 @@ class Table(object):
     def get(self, query):
         """
         Get password from entry with login or alias equals to s.
-        Return None or tuple of loginc and password
+        Return tuple (login,  password) or None
         """
         try:
             cursor = self._connection.cursor()
-            cursor.execute('''SELECT * FROM USERS WHERE login=? or alias=?''',
+            cursor.execute(self.SQL_GET_QUERY,
                            [query, query])
             row = cursor.fetchone()
             if row is not None:
@@ -111,11 +115,11 @@ class Table(object):
 
     def delete(self, pk):
         """
-        Delete entry with id
+        Delete entry with pk
         """
         try:
             pk = int(pk)
-            self._connection.execute('''DELETE FROM USERS WHERE id=?''', [pk])
+            self._connection.execute(self.SQL_DELETE_QUERY, [pk])
         except Exception as e:
             logger.exception(e.message)
             raise ErrorDatabase("Can't delete entry")
@@ -123,7 +127,7 @@ class Table(object):
     def list(self):
         results = []
         cursor = self._connection.cursor()
-        cursor.execute('''SELECT * FROM USERS''')
+        cursor.execute(self.SQL_LIST_QUERY)
         for row in cursor.fetchall():
             results.append(Record.from_cursor_row(row))
         return results
@@ -142,12 +146,12 @@ class DBManager(object):
         """
         print("%5s|%15s|%15s|%15s|\n" % ('id', 'login', 'password', 'alias'))
         for record in self._table.list():
-            print("%5s|%15s|%15s|%15s|" % (record.id, record.login, '*', record.alias))
+            print("%5s|%15s|%15s|%15s|" % (record.pk, record.login, '*', record.alias))
 
     def get_password(self, query):
         """
         Get password from entry with login or alias equals to s.
-        Return None or tuple of loginc and password
+        Return None or tuple of logic and password
         """
         record = self._table.get(query)
         if record:
@@ -184,7 +188,7 @@ def main():
                     login = str(raw_input('login:'))
                     if not login:
                         continue
-                    password = str(raw_input('password:'))
+                    password = str(getpass.getpass('password:'))
                     if not password:
                         continue
                     alias = str(raw_input('alias:'))
