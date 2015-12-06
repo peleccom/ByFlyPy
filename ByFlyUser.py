@@ -96,8 +96,8 @@ class ByFlyUser:
     _Log1 = '1.html'
     _Log2 = '2.html'
     _LastErr = ''
-    _Login_Page = 'https://issa.beltelecom.by/main.html'
-    _Account_Page = 'https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_account'
+    URL_LOGIN_PAGE = 'https://issa.beltelecom.by/main.html'
+    URL_ACCOUNT_PAGE = 'https://issa.beltelecom.by/main.html'
 
 
     def __init__(self, login, password):
@@ -148,7 +148,7 @@ class ByFlyUser:
             'passwd': self._password,
         }
         try:
-            r = self.session.post(self._Login_Page, data=data)
+            r = self.session.post(self.URL_LOGIN_PAGE, data=data)
             if r.status_code != 200:
                 logger.debug("Login status code is %s", r.status_code)
                 return False
@@ -176,69 +176,106 @@ class ByFlyUser:
         #     return True
         # self._SetLastError(res)
         # return False
+        return True
 
-    def get_info(self):
+    def _get_table_value(self, html, key):
+        pass
+
+    def get_account_info_page(self):
+        """
+        parse a main page of cabinet and return dictionary
         '''
-parse a main page of cabinet and return dictionary
-keys:
-tarif,FIO,traf,balance,duration
-        '''
+        :return:
+        dict keys:
+        tarif,FIO,traf,balance,duration
+        """
         try:
-            r = self.session.get(self._Account_Page)
+            r = self.session.get(self.URL_ACCOUNT_PAGE)
             html = r.text
             log_to_file(self._Log2, html)
         except Exception, e:
             self._SetLastError(str(e))
             return False
-        k={}
-        m=re.search(
-        u'alt="Тарифный план"></td>.*?<td>&nbsp;<b class=body>(.*?)<', html, 16)
+        return self.parse_account_info(html)
+        # m=re.search(
+        # u'alt="Тарифный план"></td>.*?<td>&nbsp;<b class=body>(.*?)<', html, 16)
+        # if m:
+        #     s = m.group(1)
+        #     s = s.strip()
+        #     k['tarif'] = s
+        # else:
+        #     self._SetLastError(u'Не определен тариф')
+        #     return False
+        # m=re.search(u'alt="Пользователь" title="Пользователь"></td>.*?<td>&nbsp;<b class=body>(.*?)</b>',html,16)
+        # if m:
+        #     s=m.group(1)
+        #     s=s.strip()
+        #     k['FIO']=s
+        # m=re.search(u'длительность сессий</td>.*?<td align=center>&nbsp;(\d*:(\d*))',html,16)
+        # if m:
+        #     s=m.group(1)
+        #     s=s.strip()
+        #     comp = s.split(':')
+        #     comp = map(int,comp)
+        #     if len(comp) == 2:
+        #         #min:sec
+        #         k['duration'] = datetime.timedelta(minutes=comp[0], seconds=comp[1])
+        #     elif len(comp) == 1:
+        #         #sec
+        #         k['duration'] = datetime.timedelta(seconds=comp[0])
+        #     else:
+        #         #zero field?
+        #         k['duration'] = datetime.timedelta()
+        #
+        # m=re.search(u'суммарный.трафик</td>.*?<td.align=center>.*?;(\d*(\.(\d*))?)',html,16)
+        # if m:
+        #     s=m.group(1)
+        #     s=s.strip()
+        #     try:
+        #         k['traf']=float(s)
+        #     except:
+        #         pass
+
+        # s=str(k.get('traf'))+' '+TRAF_MEASURE if k.get('traf') else k.get('duration')
+        # self.info=u"%s - %s\n%s %s - %s"%(k.get("FIO"),k.get('tarif'),k.get('balance'),MONEY_MEASURE,s)
+        return k
+
+    def get_table_dict(self, html):
+        k = dict()
+        matches = re.findall(u"<tr[^>]*>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*</tr>",
+                             html, re.DOTALL)
+        for match in matches:
+            k[match[0]] = match[1]
+        return k
+
+
+    def parse_account_info(self, html):
+        FIO_KEY = u"Абонент"
+        PLAN_KEY = u"Тарифный план на услуги"
+        def leave_num_symbols(s):
+            res = ''
+            for char in s:
+                if char.isdigit():
+                    res += char
+            return res
+        k = dict()
+        m=re.search(u'Актуальный баланс: <b>(.*)</b>', html)
         if m:
             s = m.group(1)
-            s = s.strip()
-            k['tarif'] = s
-        else:
-            self._SetLastError(u'Не определен тариф')
-            return False
-        m=re.search(u'alt="Пользователь" title="Пользователь"></td>.*?<td>&nbsp;<b class=body>(.*?)</b>',html,16)
-        if m:
-            s=m.group(1)
-            s=s.strip()
-            k['FIO']=s
-        m=re.search(u'длительность сессий</td>.*?<td align=center>&nbsp;(\d*:(\d*))',html,16)
-        if m:
-            s=m.group(1)
-            s=s.strip()
-            comp = s.split(':')
-            comp = map(int,comp)
-            if len(comp) == 2:
-                #min:sec
-                k['duration'] = datetime.timedelta(minutes=comp[0], seconds=comp[1])
-            elif len(comp) == 1:
-                #sec
-                k['duration'] = datetime.timedelta(seconds=comp[0])
-            else:
-                #zero field?
-                k['duration'] = datetime.timedelta()
-            
-        m=re.search(u'суммарный.трафик</td>.*?<td.align=center>.*?;(\d*(\.(\d*))?)',html,16)
-        if m:
-            s=m.group(1)
-            s=s.strip()
+            s = s.strip(" .")
+            s = leave_num_symbols(s)
             try:
-                k['traf']=float(s)
+                balance_int = int(s)
             except:
-                pass
-        m=re.search(u'Актуальный.баланс:</td>.*?<td.class=light.width="50%">.*?;(.?\d*)',html,16)
-        if m:
-            s=m.group(1)
-            s=s.strip()
-            k['balance']=s
+                self._SetLastError(u'Не определен баланс')
+                return False
+            k['balance'] = balance_int
         else:
             self._SetLastError(u'Не определен баланс')
             return False
-        s=str(k.get('traf'))+' '+TRAF_MEASURE if k.get('traf') else k.get('duration')
-        self.info=u"%s - %s\n%s %s - %s"%(k.get("FIO"),k.get('tarif'),k.get('balance'),MONEY_MEASURE,s)
+        table_k = self.get_table_dict(html)
+        k['tarif'] = table_k[PLAN_KEY]
+        k['FIO'] = table_k[FIO_KEY]
         return k
 
     def GetLogRaw(self,period='current',fromfile=None,encoding='cp1251'):
@@ -338,9 +375,9 @@ tarif,FIO,traf,balance,duration
         it = [k for k in [self._parsesessions(i, title) for i in reader] if k][::-1]
         return it
 
-    def PrintInfo(self):
+    def print_info(self):
         '''Call GetInfo() and print'''
-        info = self.get_info()
+        info = self.get_account_info_page()
         if not info:
             print ("Error "+self.LastError())
             return False

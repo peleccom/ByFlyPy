@@ -66,7 +66,7 @@ def UI(opt,showgraph=None):
         ImportPlot()
     user=ByFlyUser.ByFlyUser(opt.login,opt.password)
     if user.login():
-        user.PrintInfo()
+        user.print_info()
         return
         # user.PrintAdditionInfo()
         if opt.graph and Has_Matplot:
@@ -131,7 +131,7 @@ elif opt.debug == "no":
     opt.debug = False
 ByFlyUser._DEBUG_ = opt.debug
 log_level = logging.DEBUG if opt.debug else logging.ERROR
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=log_level)
 
 
 #pause at exit?
