@@ -1,6 +1,6 @@
-﻿# -*- coding: UTF-8 -*-
-
-#-------------------------------------------------------------------------------
+﻿#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+# -------------------------------------------------------------------------------
 # Name:        database
 # Purpose:
 #
@@ -9,100 +9,164 @@
 # Created:     05.02.2012
 # Copyright:   (c) Alexander 2012
 # Licence:     <your licence>
-#-------------------------------------------------------------------------------
-#!/usr/bin/env python
+# -------------------------------------------------------------------------------
+import sys
+import sqlite3 as db
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ErrorDatabase(Exception):
-    """
-        Exception of class
-    """
+    pass
 
-class DBLogin(object):
-    """
-        Iterface to access to database with login and passwords
-    """
-    import sqlite3 as db
 
-    def __init__(self, filename='users.db'):
+class Record(object):
+    def __init__(self, login, password, alias=None, pk=None):
+        self._login = login
+        self._password = password
+        self._alias = alias
+        self._pk = pk
+
+    @classmethod
+    def from_cursor_row(cls, row):
+        return cls(row['login'], row['pass'], row['alias'], id=row['id'])
+
+    @property
+    def login(self):
+        return self._login
+
+    @property
+    def password(self):
+        return self._password
+
+    @property
+    def alias(self):
+        return self._alias
+
+    @property
+    def pk(self):
+        return self._pk
+
+
+class Table(object):
+    DEFAULT_DB_FILENAME = 'users.db'
+    CREATE_TABLE_SQL = '''CREATE TABLE IF NOT EXISTS USERS (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                login CHAR(25),
+                                pass CHAR(25),
+                                alias CHAR(25))'''
+    SQL_INSERT_QUERY = '''INSERT INTO USERS (login,pass,alias) VALUES (?,?,?)'''
+
+    def __init__(self, filename=DEFAULT_DB_FILENAME):
         try:
-            self._c=self.db.connect(filename)
-            self._new()
-            self._c.row_factory = self.db.Row
-        except Exception,e:
-            print e
-            raise ErrorDatabase("Can't open file %s"%(filename))
+            self._connection = db.connect(filename)
+            self.create_table_if_not_exists()
+            self._connection.row_factory = db.Row
+        except Exception as e:
+            logging.exception(e.message)
+            raise ErrorDatabase("Can't open file %s" % filename)
 
     def __del__(self):
-        self._c.close()
+        self._connection.close()
 
-    def Add(self,login,password, alias = ''):
-        """Add new entry to database"""
-        self._c.execute('''INSERT INTO USERS (login,pass,alias) VALUES (?,?,?)''',[login,password,alias])
-        self._c.commit()
-
-    def _new(self):
-        """Create new table"""
+    def create_table_if_not_exists(self):
+        """
+        Create new table
+        """
         try:
-            self._c.execute('''CREATE TABLE IF NOT EXISTS USERS (id INTEGER PRIMARY KEY AUTOINCREMENT,
-  login CHAR(25),
-  pass CHAR(25),
-  alias CHAR(25))''')
-            self._c.commit()
+            self._connection.execute(self.CREATE_TABLE_SQL)
+            self._connection.commit()
         except:
-            raise ErrorDatabase('Can\'t create new table')
-    def PrintList(self):
-        """Print list of entries"""
-        cu=self._c.cursor()
-        cu.execute('''SELECT * FROM USERS''')
-        print("%5s|%15s|%15s|%15s|\n"%('id','login','password','alias'))
-        for row in cu.fetchall():
-            print("%5s|%15s|%15s|%15s|"%(row['id'],row['login'],'*', row['alias']))
+            raise ErrorDatabase("Can't create new table")
 
-    def GetPassword(self,s):
-        """Get password from entry with login or alias equals to s.
-        Return None or tuple of loginc and password"""
-        password = None
-        login = s
+    def add(self, record):
+        """
+        Add new entry into database
+        :type record: Record
+        :param record:
+        :return:
+        """
         try:
-            cu = self._c.cursor()
-            cu.execute('''SELECT * FROM USERS WHERE login=? or alias=?''',[s,s])
-            row=cu.fetchone()
-            if row!=None:
-                print (u'Пароль взят из БД')
-                password = row['pass']
-                try:
-                    ## если введенный логин не число то это алиас в базе данных
-                    k=int(s)
-                except:
-                    login=row['login']
-        except Exception,e:
-            print e.message
-        if password:
-            return [login,password]
-        else:
-            return None
+            self._connection.execute(self.SQL_INSERT_QUERY, [record.login, record.password, record.alias])
+            self._connection.commit()
+        except:
+            raise ErrorDatabase("Can't add record")
 
-    def DeleteEntry(self,id):
-        """Delete entry with such id"""
-        if not isinstance(id,int):
-            print('Incorrect param to DeleteEntry')
-            return False
-        self._c.execute('''DELETE * FROM USERS WHERE id=?''',id)
-        print("Entry deleted")
-        return True
+    def get(self, query):
+        """
+        Get password from entry with login or alias equals to s.
+        Return None or tuple of loginc and password
+        """
+        try:
+            cursor = self._connection.cursor()
+            cursor.execute('''SELECT * FROM USERS WHERE login=? or alias=?''',
+                           [query, query])
+            row = cursor.fetchone()
+            if row is not None:
+                return Record.from_cursor_row(row)
+        except Exception as e:
+            logger.exception(e.message)
+            pass
+        return None
 
+    def delete(self, pk):
+        """
+        Delete entry with id
+        """
+        try:
+            pk = int(pk)
+            self._connection.execute('''DELETE FROM USERS WHERE id=?''', [pk])
+        except Exception as e:
+            logger.exception(e.message)
+            raise ErrorDatabase("Can't delete entry")
+
+    def list(self):
+        results = []
+        cursor = self._connection.cursor()
+        cursor.execute('''SELECT * FROM USERS''')
+        for row in cursor.fetchall():
+            results.append(Record.from_cursor_row(row))
+        return results
+
+
+class DBManager(object):
+    """
+        Interface to access to database with login and passwords
+    """
+    def __init__(self, table):
+        self._table = table
+
+    def print_list(self):
+        """
+        Print list of entries in db
+        """
+        print("%5s|%15s|%15s|%15s|\n" % ('id', 'login', 'password', 'alias'))
+        for record in self._table.list():
+            print("%5s|%15s|%15s|%15s|" % (record.id, record.login, '*', record.alias))
+
+    def get_password(self, query):
+        """
+        Get password from entry with login or alias equals to s.
+        Return None or tuple of loginc and password
+        """
+        record = self._table.get(query)
+        if record:
+            return record.login, record.password
+        return None
 
 
 def main():
-    import sys
+
     if len(sys.argv) == 1:
         print ('database.py <database_filename>')
     else:
+        table = None
         try:
-            o = DBLogin(sys.argv[1])
-        except ErrorDatabase,e:
+            table = Table(sys.argv[1])
+        except ErrorDatabase as e:
             print e
             exit(1)
+        db_manager = DBManager(table)
         while True:
             print(u'''Manage database:
     list     - list of entries
@@ -110,9 +174,9 @@ def main():
     del <id> - delete entry by id
     q        - quit
     ''')
-            a = raw_input()
+            a = raw_input(">>")
             if a == 'list':
-                o.PrintList()
+                db_manager.print_list()
             if a == 'q':
                 exit()
             if a == 'add':
@@ -124,11 +188,14 @@ def main():
                     if not password:
                         continue
                     alias = str(raw_input('alias:'))
-                    o.Add(login,password,alias)
-                except:
+                    record = Record(login, password, alias)
+                    table.add(record)
+                except Exception as e:
+                    logger.exception(e.message)
                     pass
             if a.startswith('del '):
-                l,_,p = a.partition(" ")
-                o.DeleteEntry(p)
+                l, _, p = a.partition(" ")
+                table.delete(p)
+
 if __name__ == '__main__':
     main()
