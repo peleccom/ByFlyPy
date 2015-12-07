@@ -24,7 +24,10 @@ __FIGURE_FORMATS__=['png', 'pdf', 'svg','eps','ps']
 
 __DEFAULT_DATABASE_FILENAME = 'users.db'
 
+
 Has_Matplot=False
+
+logger = logging.getLogger(__name__)
 
 
 def pause():

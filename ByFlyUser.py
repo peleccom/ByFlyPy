@@ -9,16 +9,13 @@
 # Copyright:   (c) Александр 2011
 #-------------------------------------------------------------------------------
 '''User Class'''
-import cookielib
 import urllib
 import urllib2
 import time
-import datetime
 import re
 import codecs
 
 import requests
-import sys
 import UnicodeCSV
 import datetime
 import logging

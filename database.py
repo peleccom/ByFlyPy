@@ -70,8 +70,11 @@ class Table(object):
             logging.exception(e.message)
             raise ErrorDatabase("Can't open file %s" % filename)
 
-    def __del__(self):
+    def close(self):
         self._connection.close()
+
+    def __del__(self):
+        self.close()
 
     def create_table_if_not_exists(self):
         """
@@ -140,14 +143,6 @@ class DBManager(object):
     def __init__(self, table):
         self._table = table
 
-    def print_list(self):
-        """
-        Print list of entries in db
-        """
-        print("%5s|%15s|%15s|%15s|\n" % ('id', 'login', 'password', 'alias'))
-        for record in self._table.list():
-            print("%5s|%15s|%15s|%15s|" % (record.pk, record.login, '*', record.alias))
-
     def get_password(self, query):
         """
         Get password from entry with login or alias equals to s.
@@ -180,7 +175,9 @@ def main():
     ''')
             a = raw_input(">>")
             if a == 'list':
-                db_manager.print_list()
+                print("%5s|%15s|%15s|%15s|\n" % ('id', 'login', 'password', 'alias'))
+                for record in table.list():
+                    print("%5s|%15s|%15s|%15s|" % (record.pk, record.login, '*', record.alias))
             if a == 'q':
                 exit()
             if a == 'add':
