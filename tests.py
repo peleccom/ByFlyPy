@@ -14,7 +14,7 @@ from database import Table, DBManager, Record, ErrorDatabase
 #     def test_parse_balance(self):
 #         self.assertIsInstance(self.byflyuser.parse_account_info(self.html)['balance'], int)
 #
-#     def test_table_content(self):
+#     def test_table_content(self): 
 #         print self.byflyuser.get_table_dict(self.html)
 
 
