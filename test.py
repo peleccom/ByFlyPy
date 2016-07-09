@@ -1,20 +1,21 @@
 import codecs
 from unittest import TestCase
+import unittest
 from ByFlyUser import ByFlyUser
 import os
 from database import Table, DBManager, Record, ErrorDatabase
 
 
-class TestAccountParse(TestCase):
-    def setUp(self):
-        self.html = codecs.open("2.html", encoding="utf8").read()
-        self.byflyuser = ByFlyUser("test", "test")
-
-    def test_parse_balance(self):
-        self.assertIsInstance(self.byflyuser.parse_account_info(self.html)['balance'], int)
-
-    def test_table_content(self):
-        print self.byflyuser.get_table_dict(self.html)
+# class TestAccountParse(TestCase):
+#     def setUp(self):
+#         self.html = codecs.open("2.html", encoding="utf8").read()
+#         self.byflyuser = ByFlyUser("test", "test")
+#
+#     def test_parse_balance(self):
+#         self.assertIsInstance(self.byflyuser.parse_account_info(self.html)['balance'], int)
+#
+#     def test_table_content(self):
+#         print self.byflyuser.get_table_dict(self.html)
 
 
 class DBTest(TestCase):
@@ -65,3 +66,7 @@ class DBTest(TestCase):
         self.assertIsNone(result3)
         self.assertEqual(result[0], result2[0])
         self.assertEqual(result[1], result2[1])
+
+
+if __name__ == '__main__':
+    unittest.main()
