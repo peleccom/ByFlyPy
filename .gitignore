@@ -1,5 +1,6 @@
 *.pyc
-users.db
+*.db
 *.html
 *.txt
 *.png
+.idea/

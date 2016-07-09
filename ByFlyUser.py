@@ -14,6 +14,7 @@ import urllib2
 import time
 import re
 import codecs
+from decimal import Decimal
 
 import requests
 import UnicodeCSV
@@ -82,6 +83,24 @@ class Session(object):
 
 
 
+class UserInfo(object):
+    def __init__(self, full_name, plan, balance):
+        self._full_name = full_name
+        self._plan = plan
+        self._balance = balance
+
+    @property
+    def full_name(self):
+        return self._full_name
+
+    @property
+    def plan(self):
+        return self._plan
+
+    @property
+    def balance(self):
+        return self._balance
+
 
 class ByFlyUser:
     """Interface to get information
@@ -101,7 +120,7 @@ class ByFlyUser:
         self._login = login
         self._password = password
         self.info = None
-        self.session  = requests.session()
+        self.session = requests.session()
 
     def _SetLastError(self, error):
         self._LastErr = error
@@ -185,6 +204,7 @@ class ByFlyUser:
         :return:
         dict keys:
         tarif,FIO,traf,balance,duration
+        :rtype: UserInfo,
         """
         try:
             r = self.session.get(self.URL_ACCOUNT_PAGE)
@@ -247,33 +267,35 @@ class ByFlyUser:
 
 
     def parse_account_info(self, html):
-        FIO_KEY = u"Абонент"
+        FULL_NAME_KEY = u"Абонент"
         PLAN_KEY = u"Тарифный план на услуги"
-        def leave_num_symbols(s):
+        BALANCE_REGEXPR_PATTERN = u'Актуальный баланс: <b>(.*)</b>'
+        def strip_modey_field(s):
             res = ''
             for char in s:
-                if char.isdigit():
+                if char.isdigit() or char in [',','.']:
                     res += char
             return res
         k = dict()
-        m=re.search(u'Актуальный баланс: <b>(.*)</b>', html)
+        m=re.search(BALANCE_REGEXPR_PATTERN, html)
         if m:
             s = m.group(1)
             s = s.strip(" .")
-            s = leave_num_symbols(s)
+            s = strip_modey_field(s)
             try:
-                balance_int = int(s)
-            except:
+                balance_int = Decimal(s)
+            except Exception as e:
+                logger.exception(e)
                 self._SetLastError(u'Не определен баланс')
                 return False
-            k['balance'] = balance_int
+            balance = balance_int
         else:
             self._SetLastError(u'Не определен баланс')
             return False
         table_k = self.get_table_dict(html)
-        k['tarif'] = table_k[PLAN_KEY]
-        k['FIO'] = table_k[FIO_KEY]
-        return k
+        plan = table_k[PLAN_KEY]
+        full_name = table_k[FULL_NAME_KEY]
+        return UserInfo(full_name, plan, balance)
 
     def GetLogRaw(self,period='current',fromfile=None,encoding='cp1251'):
         """Return report of using connection as raw csv. period='curent' or 'previous. If """
@@ -378,22 +400,24 @@ class ByFlyUser:
         if not info:
             print ("Error "+self.LastError())
             return False
-        if info.get('traf'):
-            traf = u"Трафик  - %s %s" % (info.get('traf'),TRAF_MEASURE)
-        else:
-            traf = ''
-        if info.get('duration'):
-            duration = u"Длительность  - %s" % (info.get('duration'))
-        else:
-            duration = ''
+        # if info.get('traf'):
+        #     traf = u"Трафик  - %s %s" % (info.get('traf'),TRAF_MEASURE)
+        # else:
+        #     traf = ''
+        # if info.get('duration'):
+        #     duration = u"Длительность  - %s" % (info.get('duration'))
+        # else:
+        #     duration = ''
+        traf = ''
+        duration = ''
         print (u'''\
 Абонент - %s
 Тариф   - %s
 Баланс  - %s %s
 %s
 %s\
-        '''%(info.get('FIO'), info.get('tarif'),
-         info.get('balance'), MONEY_MEASURE, traf, duration))
+        '''%(info.full_name, info.plan,
+         info.balance, MONEY_MEASURE, traf, duration))
         return True
 
     def PrintAdditionInfo(self,period = None):

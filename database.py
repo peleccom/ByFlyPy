@@ -165,7 +165,6 @@ def main():
         except ErrorDatabase as e:
             print e
             exit(1)
-        db_manager = DBManager(table)
         while True:
             print(u'''Manage database:
     list     - list of entries
