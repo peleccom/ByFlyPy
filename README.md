@@ -1,8 +1,9 @@
 ByFlyPy
 ================
 [![Build Status](https://travis-ci.org/peleccom/ByFlyPy.svg?branch=master)](https://travis-ci.org/peleccom/ByFlyPy)
+[![codecov](https://codecov.io/gh/peleccom/ByFlyPy/branch/master/graph/badge.svg)](https://codecov.io/gh/peleccom/ByFlyPy)
 
 Little programm and class to check ByFly account balance, get user information,plot some information
 
 
-Маленькая программа и класс для проверки баланса аккаунта ByFly, получения информации и построения некоторых графиков
+РњР°Р»РµРЅСЊРєР°СЏ РїСЂРѕРіСЂР°РјРјР° Рё РєР»Р°СЃСЃ РґР»СЏ РїСЂРѕРІРµСЂРєРё Р±Р°Р»Р°РЅСЃР° Р°РєРєР°СѓРЅС‚Р° ByFly, РїРѕР»СѓС‡РµРЅРёСЏ РёРЅС„РѕСЂРјР°С†РёРё Рё РїРѕСЃС‚СЂРѕРµРЅРёСЏ РЅРµРєРѕС‚РѕСЂС‹С… РіСЂР°С„РёРєРѕРІ
