@@ -1,5 +1,9 @@
 ﻿# -*- coding: UTF-8 -*-
-import csv, codecs, cStringIO
+import csv, codecs
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 def unicode_csv_reader(unicode_csv_data, dialect=csv.excel, **kwargs):
     # csv.py doesn't do Unicode; encode temporarily as UTF-8:
@@ -51,7 +55,7 @@ class UnicodeWriter:
 
     def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
         # Redirect output to a queue
-        self.queue = cStringIO.StringIO()
+        self.queue = StringIO()
         self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
         self.stream = f
         self.encoder = codecs.getincrementalencoder(encoding)()

@@ -10,7 +10,6 @@
 #-------------------------------------------------------------------------------
 '''User Class'''
 import urllib
-import urllib2
 import time
 import re
 import codecs
@@ -210,7 +209,7 @@ class ByFlyUser:
             r = self.session.get(self.URL_ACCOUNT_PAGE)
             html = r.text
             log_to_file(self._Log2, html)
-        except Exception, e:
+        except Exception as e:
             self._SetLastError(str(e))
             return False
         return self.parse_account_info(html)
@@ -312,14 +311,14 @@ class ByFlyUser:
                 req=self._opener.open('https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls&action=setfilter&filter=0')
                 req=self._opener.open('https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls&action=save&repFormat=1&repPostfix=2csv')
                 rawcsv=req.read().decode('cp1251')
-            except Exception,e:
+            except Exception as e:
                 self._SetLastError(str(e))
                 return False
         else:
             try:
                 import codecs
                 rawcsv=codecs.open(fromfile,encoding=encoding).read()
-            except Exception,e:
+            except Exception as e:
                 self._SetLastError(str(e))
                 return False
         return rawcsv
@@ -340,7 +339,7 @@ class ByFlyUser:
                         duration = datetime.timedelta(days = ttuple[0],
                             hours = ttuple[1], minutes = ttuple[2],
                             seconds = ttuple[3])
-                    except Exception, e:
+                    except Exception as e:
                         ttuple = time.strptime(row[i], "%H:%M:%S")[3:6]
                         duration = datetime.timedelta(hours = ttuple[0],
                             minutes = ttuple[1], seconds = ttuple[2])
@@ -361,7 +360,7 @@ class ByFlyUser:
                 return Session(title,begin,end,duration,ingoing,outgoing,cost)
             except:
                 return None
-        except Exception, e:
+        except Exception as e:
             self._SetLastError(str(e))
             return None
 

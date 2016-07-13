@@ -124,7 +124,7 @@ class Table(object):
             pk = int(pk)
             self._connection.execute(self.SQL_DELETE_QUERY, [pk])
         except Exception as e:
-            logger.exception(e.message)
+            logger.exception(e)
             raise ErrorDatabase("Can't delete entry")
 
     def list(self):
@@ -157,13 +157,13 @@ class DBManager(object):
 def main():
 
     if len(sys.argv) == 1:
-        print ('database.py <database_filename>')
+        print('database.py <database_filename>')
     else:
         table = None
         try:
             table = Table(sys.argv[1])
         except ErrorDatabase as e:
-            print e
+            print(e)
             exit(1)
         while True:
             print(u'''Manage database:
