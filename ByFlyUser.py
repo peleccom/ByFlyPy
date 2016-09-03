@@ -181,13 +181,13 @@ class ByFlyUser(object):
             log_to_file(self._Log1, html)
         except Exception as e:
             logger.exception(e)
-            self._set_last_error(e.message)
+            self._set_last_error(str(e))
             return False
         try:
             return self.check_error_message(html) == M_OK
         except ByflyException as e:
             logger.exception(e)
-            self._set_last_error(e.message)
+            self._set_last_error(str(e))
             return False
         # k = None
         # if res == M_REFRESH:
