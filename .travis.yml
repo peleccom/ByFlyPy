@@ -8,6 +8,7 @@ python:
 
 install:
   - pip install codecov
+  - pip install requests-mock
 
 script:
   - coverage run tests.py

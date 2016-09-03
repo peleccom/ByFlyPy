@@ -1,15 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
 import codecs
+import logging
+import optparse
 from tempfile import NamedTemporaryFile
 from unittest import TestCase
 import unittest
 from datetime import timedelta
 from decimal import Decimal
+import requests_mock
+import sys
 import ByFlyUser
 import os
 from database import Table, DBManager, Record, ErrorDatabase
 import database
+import byfly
 try:
     import mock
 except:
@@ -154,5 +159,119 @@ class TestUserInfoClass(TestCase):
         self.assertEqual(user_info.full_name, self.FULL_NAME)
         self.assertEqual(user_info.balance, self.BALANCE)
         self.assertEqual(user_info.plan, self.PLAN)
+
+
+class TestByFlyUserClass(TestCase):
+    LOGIN = "test"
+    PASSWORD = "test"
+    def setUp(self):
+        self._byflyuser = ByFlyUser.ByFlyUser(self.LOGIN, self.PASSWORD)
+
+    def test__empty_login(self):
+        byflyuser = ByFlyUser.ByFlyUser("", "")
+        self.assertFalse(byflyuser.login())
+
+    def test_login(self):
+        with requests_mock.Mocker() as m:
+            m.post(self._byflyuser.URL_LOGIN_PAGE, status_code=404)
+            self.assertFalse(self._byflyuser.login())
+
+            #Empty response
+            m.post(self._byflyuser.URL_LOGIN_PAGE)
+            self.assertFalse(self._byflyuser.login())
+            self.assertIsNotNone(self._byflyuser.get_last_error())
+            m.post(self._byflyuser.URL_LOGIN_PAGE, text=ByFlyUser.START_PAGE_MARKER)
+            self.assertTrue(self._byflyuser.login())
+            #BAN
+            m.post(self._byflyuser.URL_LOGIN_PAGE, text=self._byflyuser.LoginErrorMessages.ERR_BAN)
+            self.assertFalse(self._byflyuser.login())
+            #Wrong cred
+            m.post(self._byflyuser.URL_LOGIN_PAGE, text=self._byflyuser.LoginErrorMessages.ERR_INCORRECT_CRED)
+            self.assertFalse(self._byflyuser.login())
+
+            #no known marker found
+
+            m.post(self._byflyuser.URL_LOGIN_PAGE, text="test")
+            self.assertFalse(self._byflyuser.login())
+
+            m.post(self._byflyuser.URL_LOGIN_PAGE, text=self._byflyuser.LoginErrorMessages.ERR_STUCK_IN_LOGIN)
+            self.assertFalse(self._byflyuser.login())
+
+            m.post(self._byflyuser.URL_LOGIN_PAGE, text=self._byflyuser.LoginErrorMessages.ERR_TIMEOUT_LOGOUT)
+            self.assertFalse(self._byflyuser.login())
+
+        with mock.patch.object(self._byflyuser.session, 'post', side_effect=ValueError("1")):
+            self.assertFalse(self._byflyuser.login())
+
+    def test_acc_info(self):
+        with requests_mock.Mocker() as m:
+            m.post(self._byflyuser.URL_LOGIN_PAGE, text=ByFlyUser.START_PAGE_MARKER)
+            self._byflyuser.login()
+            f = codecs.open("testdata/account_page.html", 'r', encoding='utf8')
+            account_raw_data = f.read()
+            f.close()
+            m.get(self._byflyuser.URL_ACCOUNT_PAGE, text=account_raw_data)
+
+            with mock.patch.object(self._byflyuser.session, 'get', side_effect=ValueError("1")):
+                self.assertFalse(self._byflyuser.get_account_info_page())
+                self.assertFalse(self._byflyuser.print_info())
+
+            self.assertTrue(self._byflyuser.get_account_info_page())
+            self.assertTrue(self._byflyuser.print_info())
+class TestMainProg(TestCase):
+    def test_import_plot(self):
+        byfly.import_plot()
+
+    DB_FILENAME = "test.db"
+
+    def test_check_image_filename(self):
+        class MockValues(object):
+            graph = False
+        class MockParser(object):
+            values = MockValues()
+        parser = MockParser()
+        with self.assertRaises(optparse.OptionValueError):
+            byfly.check_image_filename(None, None, "", parser)
+        with self.assertRaises(optparse.OptionValueError):
+            byfly.check_image_filename(None, None, "1.png", parser)
+        parser.values.graph = True
+        byfly.check_image_filename(None, None, "1.png", parser)
+        with self.assertRaises(optparse.OptionValueError):
+            byfly.check_image_filename(None, None, "1.txt", parser)
+
+    def test_pass_from_db(self):
+        LOGIN = "pass_from_db"
+        PASSWORD = "123"
+        class MockOpt(object):
+            login = ""
+        opt = MockOpt()
+        password = byfly.pass_from_db(LOGIN, self.DB_FILENAME, opt)
+        self.assertIsNone(password)
+        table = database.Table(self.DB_FILENAME)
+        record = table.add(Record(LOGIN, PASSWORD))
+        password = byfly.pass_from_db(LOGIN, self.DB_FILENAME, opt)
+        self.assertEqual(password, PASSWORD)
+
+        password = byfly.pass_from_db(LOGIN, self.DB_FILENAME, None)
+        self.assertIsNone(password)
+
+    def test_setup_cmd_parser(self):
+        byfly.setup_cmd_parser()
+
+    # def test_ui(self):
+    #     class OptMock(object):
+    #         graph = False
+    #         login = "test"
+    #         password = "test"
+    #
+    #     byfly.ui(OptMock())
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            os.remove(cls.DB_FILENAME)
+        except:
+            pass
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.CRITICAL)
     unittest.main()

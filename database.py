@@ -27,7 +27,7 @@ class Record(object):
         self._login = login
         self._password = password
         self._alias = alias
-        self._pk = pk
+        self.set_pk(pk)
 
     @classmethod
     def from_cursor_row(cls, row):
@@ -48,6 +48,9 @@ class Record(object):
     @property
     def pk(self):
         return self._pk
+
+    def set_pk(self, pk):
+        self._pk = pk
 
 
 class Table(object):
@@ -94,8 +97,10 @@ class Table(object):
         :return:
         """
         try:
-            self._connection.execute(self.SQL_INSERT_QUERY, [record.login, record.password, record.alias])
+            cursor = self._connection.execute(self.SQL_INSERT_QUERY, [record.login, record.password, record.alias])
             self._connection.commit()
+            record.set_pk(cursor.lastrowid)
+            return record
         except Exception as e:
             raise ErrorDatabase("Can't add record")
 

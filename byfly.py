@@ -11,9 +11,10 @@
 # -------------------------------------------------------------------------------
 # To install MatPlotLib in Debian/Ubuntu Linux run
 # > sudo apt-get install python-matplotlib
+from __future__ import unicode_literals, absolute_import
 import logging
 import optparse
-import time
+import atexit
 import ByFlyUser
 import sys
 import sqlite3 as db
@@ -23,8 +24,6 @@ __VERSION__ = '3.0'
 __FIGURE_FORMATS__ = ['png', 'pdf', 'svg', 'eps', 'ps']
 
 __DEFAULT_DATABASE_FILENAME = 'users.db'
-
-
 HAS_MATPLOT = False
 
 logger = logging.getLogger(__name__)
@@ -50,11 +49,11 @@ def import_plot():
             print ("Warning: MatPlotlib not installed - Plotting not working.")
 
 
-def pass_from_db(login):
+def pass_from_db(login, db_filename, opt):
     """Get password from database file. Return password or None """
     import database
     try:
-        db_manager = database.DBManager(database.Table(DATABASE_FILENAME))
+        db_manager = database.DBManager(database.Table(db_filename))
         res = db_manager.get_password(login)
         if res:
             opt.login = res[0]
@@ -92,7 +91,7 @@ def ui(opt, showgraph=None):
             elif opt.graph == 'traf':
                 plt.PlotTrafAllocation(user.GetLog(), title=user.info, show=show, fname=fname)
     else:
-        print("Can't Log: " + user.LastError())
+        print("Can't Log: " + user.get_last_error())
 
 
 def check_image_filename(option, opt_str, value, parser):
@@ -106,57 +105,30 @@ def check_image_filename(option, opt_str, value, parser):
     else:
         raise optparse.OptionValueError("option -s: Not correct file format. Use formats: %s" % __FIGURE_FORMATS__)
 
-p = optparse.OptionParser(description=u'Проверка баланса ByFly', prog='ByFlyPy', version=u'%%prog %s' % __VERSION__)
-p.add_option("-i", action="store_true", dest="interactive", help="Enable interactive mode")
-p.add_option("-l", "--login", action="store", type="string", dest="login", help='Login')
-p.add_option("--list", type="string", dest="check_list", metavar='<filename>',
+def setup_cmd_parser():
+    p = optparse.OptionParser(description='Проверка баланса ByFly', prog='ByFlyPy', version='%%prog %s' % __VERSION__)
+    p.add_option("-i", action="store_true", dest="interactive", help="Enable interactive mode")
+    p.add_option("-l", "--login", action="store", type="string", dest="login", help='Login')
+    p.add_option("--list", type="string", dest="check_list", metavar='<filename>',
              help="Check accounts in file. Each line of file must be login:password")
-p.add_option("-p", "--p", action="store", type="string", dest="password", help='Password')
-p.add_option("-g", "--graph", action="store", dest="graph", type='choice',
+    p.add_option("-p", "--p", action="store", type="string", dest="password", help='Password')
+    p.add_option("-g", "--graph", action="store", dest="graph", type='choice',
              help="Plot a graph. Parameters MUST BE traf or time ", choices=['traf', 'time'])
-p.add_option("-s", "--save", action='callback', help='save graph to file', callback=check_image_filename, type='string')
-p.add_option("-n", "--nologo", action='store_true', dest='nologo', help="Don't show logo at startup")
-p.add_option("--pause", action="store_true", dest="pause", help="Don't close console window immediately")
-p.add_option("--debug", action="store", type="choice", dest="debug", choices=['yes', 'no'], help="Debug yes/no")
-p.add_option("--db", action="store", type="string", dest="db", help="Database filename")
-p.set_defaults(
-                interactive=False,
-                graph=None,
-                imagefilename=None,
-                nologo=False,
-                debug=False
-                )
+    p.add_option("-s", "--save", action='callback', help='save graph to file', callback=check_image_filename, type='string')
+    p.add_option("-n", "--nologo", action='store_true', dest='nologo', help="Don't show logo at startup")
+    p.add_option("--pause", action="store_true", dest="pause", default=False, help="Don't close console window immediately")
+    p.add_option("-d", "--debug", action="store_true", dest="debug", help="Enable debug", default=False)
+    p.add_option("--db", action="store", type="string", dest="db", help="Database filename")
+    p.set_defaults(
+                    interactive=False,
+                    graph=None,
+                    imagefilename=None,
+                    nologo=False,
+                    debug=False
+                    )
+    return p
 
-
-# print help
-if len(sys.argv) == 1:
-    p.print_help()
-    sys.exit()
-
-opt, args = p.parse_args()
-
-# Enable/Disable Debug mode
-if opt.debug == "yes":
-    opt.debug = True
-elif opt.debug == "no":
-    opt.debug = False
-ByFlyUser._DEBUG_ = opt.debug
-log_level = logging.DEBUG if opt.debug else logging.ERROR
-logging.basicConfig(stream=sys.stdout, level=log_level)
-
-
-# pause at exit?
-if opt.pause:
-    import atexit
-    atexit.register(pause)
-
-if not opt.nologo:
-    p.print_version()
-if opt.db:
-    DATABASE_FILENAME = opt.db
-else:
-    DATABASE_FILENAME = __DEFAULT_DATABASE_FILENAME
-if opt.interactive:
+def interactive_mode_handler(opt, database_filename):
     try:
         a = True
         while a:
@@ -165,7 +137,7 @@ if opt.interactive:
                 print("Incorrect data")
                 sys.exit(1)
             opt.login = a
-            a = pass_from_db(opt.login)
+            a = pass_from_db(opt.login, database_filename, opt)
             if a is None:
                 a = getpass.getpass("Password:")
             if a == '':
@@ -175,14 +147,14 @@ if opt.interactive:
             import_plot()
             if HAS_MATPLOT:
                 a = raw_input("Plot graph? [y/n]")
-                if a == 'y' or a == 'Y':
+                if a in ['y', 'Y']:
                     opt.graph = True
                     a = raw_input("Which kind of graph [time/traf]")
                     if a == 'time':
                         opt.graph = 'time'
                     elif a == 'traf':
                         opt.graph = 'traf'
-                elif a == 'n' or a == 'N':
+                elif a in ['n', 'N']:
                     opt.graph = False
             ui(opt)
             cont = False
@@ -202,7 +174,7 @@ if opt.interactive:
         print(e)
         sys.exit(1)
 
-elif opt.check_list:
+def list_checker_handler(opt):
     try:
         list = open(opt.check_list, 'rt')
         for line in list:
@@ -227,12 +199,46 @@ elif opt.check_list:
             print("".center(40, '*')+'\n')
     except IOError as e:
         print("%s" % e)
-else:
+
+def non_interactive_mode_handler(opt, database_filename):
     if not opt.login:
         sys.exit()
     if not opt.password:
-        opt.password = pass_from_db(opt.login)
+        opt.password = pass_from_db(opt.login, database_filename, opt)
         if not opt.password:
-            sys.exit()
+            print("Login not found")
+            sys.exit(1)
     # command line
     ui(opt)
+
+def main():
+    parser = setup_cmd_parser()
+    # print help
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit()
+
+    opt, args = parser.parse_args()
+
+    # Enable/Disable Debug mode
+    ByFlyUser._DEBUG_ = opt.debug
+    log_level = logging.DEBUG if opt.debug else logging.ERROR
+    logging.basicConfig(stream=sys.stdout, level=log_level)
+
+    # pause at exit?
+    if opt.pause:
+        atexit.register(pause)
+
+    if not opt.nologo:
+        parser.print_version()
+    database_filename = opt.db if opt.db else __DEFAULT_DATABASE_FILENAME
+    if opt.interactive:
+        interactive_mode_handler(opt, database_filename)
+    elif opt.check_list:
+        list_checker_handler(opt)
+    else:
+        non_interactive_mode_handler(opt, database_filename)
+
+
+if __name__ == "__main__":
+    main()

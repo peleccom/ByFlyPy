@@ -9,20 +9,21 @@
 # Copyright:   (c) Александр 2011
 # -------------------------------------------------------------------------------
 '''User Class'''
-import urllib
-import time
+from __future__ import unicode_literals, absolute_import
 import re
 import codecs
 from decimal import Decimal
 
 import requests
-import datetime
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 class ByflyException(Exception):
+    pass
+
+class ByflyEmptyResponseException(ByflyException):
     pass
 
 
@@ -41,12 +42,12 @@ M_REFRESH = 3
 M_OK = 4
 M_NONE = 5
 M_DICT = {
-    M_BAN: u'Вы слишком часто пытаетесь войти в систему',
-    M_SESSION: u'Время сессии истекло',
-    M_WRONG_PASS: u'Неверный логин или пароль',
-    M_REFRESH: u'Надо обновить страницу',
-    M_OK: u'OK',
-    M_NONE: u'Неизвестная ошибка'
+    M_BAN: 'Вы слишком часто пытаетесь войти в систему',
+    M_SESSION: 'Время сессии истекло',
+    M_WRONG_PASS: 'Неверный логин или пароль',
+    M_REFRESH: 'Надо обновить страницу',
+    M_OK: 'OK',
+    M_NONE: 'Неизвестная ошибка'
 }
 _DEBUG_ = False
 
@@ -65,8 +66,10 @@ def log_to_file(filename, log_content, force=False):
 
 
 # Единицы измерения
-TRAF_MEASURE = u'Мб'
-MONEY_MEASURE = u'руб'
+TRAF_MEASURE = 'Мб'
+MONEY_MEASURE = 'руб'
+
+START_PAGE_MARKER = 'Состояние счета'
 
 
 class Session(object):
@@ -106,16 +109,22 @@ class UserInfo(object):
         return self._balance
 
 
-class ByFlyUser:
+class ByFlyUser(object):
     """Interface to get information
     usage:
         user=ByFlyUser("login","password")
         user.Login() # connect to server and login
         user.PrintInfo() #print account info
     """
+    class LoginErrorMessages:
+        ERR_BAN = 'Вы совершаете слишком частые попытки авторизации'
+        ERR_STUCK_IN_LOGIN = 'Осуществляется вход в систему'
+        ERR_TIMEOUT_LOGOUT = 'Сеанс работы после определенного периода бездействия заканчивается'
+        ERR_INCORRECT_CRED = 'Введен неверный пароль или абонент не существует'
+
     _Log1 = '1.html'
     _Log2 = '2.html'
-    _LastErr = ''
+    _last_error = ''
     URL_LOGIN_PAGE = 'https://issa.beltelecom.by/main.html'
     URL_ACCOUNT_PAGE = 'https://issa.beltelecom.by/main.html'
 
@@ -125,31 +134,28 @@ class ByFlyUser:
         self.info = None
         self.session = requests.session()
 
-    def _SetLastError(self, error):
-        self._LastErr = error
+    def _set_last_error(self, error):
+        self._last_error = error
 
-    def LastError(self):
-        if isinstance((self._LastErr), int):
-            return M_DICT[self._LastErr]
+    def get_last_error(self):
+        if isinstance((self._last_error), int):
+            return M_DICT[self._last_error]
         else:
-            return u"%s" % self._LastErr
+            return "%s" % self._last_error
 
     def check_error_message(self, html):
         '''Parse html and return 'OK' ,error representation string or None'''
-        err1 = u'Вы совершаете слишком частые попытки авторизации'
-        err2 = u'Осуществляется вход в систему'
-        err3 = u'Сеанс работы после определенного периода бездействия заканчивается'
-        err4 = u'Состояние счета'
-        err5 = u'Введен неверный пароль или абонент не существует'
-        if html.find(err1) != -1:
-            raise ByflyBanException(err1)
-        if html.find(err2) != -1:
+        if not html:
+            raise ByflyEmptyResponseException("Server return empty response")
+        if html.find(self.LoginErrorMessages.ERR_BAN) != -1:
+            raise ByflyBanException(self.LoginErrorMessages.ERR_BAN)
+        if html.find(self.LoginErrorMessages.ERR_STUCK_IN_LOGIN) != -1:
             return M_REFRESH
-        if html.find(err3) != -1:
+        if html.find(self.LoginErrorMessages.ERR_TIMEOUT_LOGOUT) != -1:
             return M_SESSION
-        if html.find(err5) != -1:
-            raise ByflyAuthException(err5)
-        if html.find(err4) != -1:
+        if html.find(self.LoginErrorMessages.ERR_INCORRECT_CRED) != -1:
+            raise ByflyAuthException(self.LoginErrorMessages.ERR_INCORRECT_CRED)
+        if html.find(START_PAGE_MARKER) != -1:
             return M_OK
         return M_NONE
 
@@ -174,14 +180,14 @@ class ByFlyUser:
             html = r.text
             log_to_file(self._Log1, html)
         except Exception as e:
-            logger.exception(e.message)
-            self._SetLastError(e.message)
+            logger.exception(e)
+            self._set_last_error(e.message)
             return False
         try:
-            res = self.check_error_message(html)
+            return self.check_error_message(html) == M_OK
         except ByflyException as e:
-            logger.exception(e.message)
-            self._SetLastError(e.message)
+            logger.exception(e)
+            self._set_last_error(e.message)
             return False
         # k = None
         # if res == M_REFRESH:
@@ -195,7 +201,6 @@ class ByFlyUser:
         #     return True
         # self._SetLastError(res)
         # return False
-        return True
 
     def _get_table_value(self, html, key):
         pass
@@ -214,7 +219,7 @@ class ByFlyUser:
             html = r.text
             log_to_file(self._Log2, html)
         except Exception as e:
-            self._SetLastError(str(e))
+            self._set_last_error(str(e))
             return False
         return self.parse_account_info(html)
         # m=re.search(
@@ -258,20 +263,20 @@ class ByFlyUser:
 
         # s=str(k.get('traf'))+' '+TRAF_MEASURE if k.get('traf') else k.get('duration')
         # self.info=u"%s - %s\n%s %s - %s"%(k.get("FIO"),k.get('tarif'),k.get('balance'),MONEY_MEASURE,s)
-        return k
+        # return k
 
     def get_table_dict(self, html):
         k = dict()
-        matches = re.findall(u"<tr[^>]*>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*</tr>",
+        matches = re.findall("<tr[^>]*>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*</tr>",
                              html, re.DOTALL)
         for match in matches:
             k[match[0]] = match[1]
         return k
 
     def parse_account_info(self, html):
-        FULL_NAME_KEY = u"Абонент"
-        PLAN_KEY = u"Тарифный план на услуги"
-        BALANCE_REGEXPR_PATTERN = u'Актуальный баланс: <b>(.*)</b>'
+        FULL_NAME_KEY = "Абонент"
+        PLAN_KEY = "Тарифный план на услуги"
+        BALANCE_REGEXPR_PATTERN = 'Актуальный баланс: <b>(.*)</b>'
 
         def strip_modey_field(s):
             res = ''
@@ -290,125 +295,128 @@ class ByFlyUser:
                 balance_int = Decimal(s)
             except Exception as e:
                 logger.exception(e)
-                self._SetLastError(u'Не определен баланс')
+                self._set_last_error('Не определен баланс')
                 return False
             balance = balance_int
         else:
-            self._SetLastError(u'Не определен баланс')
+            self._set_last_error('Не определен баланс')
             return False
         table_k = self.get_table_dict(html)
         plan = table_k[PLAN_KEY]
         full_name = table_k[FULL_NAME_KEY]
         return UserInfo(full_name, plan, balance)
 
-    def GetLogRaw(self, period='current', fromfile=None, encoding='cp1251'):
-        """Return report of using connection as raw csv. period='curent' or 'previous. If """
-        if not fromfile:
-            try:
-                req = self._opener.open(
-                    'https://issa.beltelecom.by/cgi-bin/cgi.exe?function=is_lastcalls&action=report')
-                periods = 'CURRENT'
-                if period == 'current':
-                    periods = 'CURRENT'
-                elif period == 'previous':
-                    periods = '0'
-                req = self._opener.open('https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls',
-                                        urllib.urlencode(
-                                            [('periods', periods), ('action', 'setperiod'), ('x', '17'), ('y', '15')]))
-                req = self._opener.open(
-                    'https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls&action=refresh')
-                req = self._opener.open(
-                    'https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls&action=setfilter&filter=0')
-                req = self._opener.open(
-                    'https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls&action=save&repFormat=1&repPostfix=2csv')
-                rawcsv = req.read().decode('cp1251')
-            except Exception as e:
-                self._SetLastError(str(e))
-                return False
-        else:
-            try:
-                import codecs
-                rawcsv = codecs.open(fromfile, encoding=encoding).read()
-            except Exception as e:
-                self._SetLastError(str(e))
-                return False
-        return rawcsv
+    # def GetLogRaw(self, period='current', fromfile=None, encoding='cp1251'):
+    #     """Return report of using connection as raw csv. period='curent' or 'previous. If """
+    #     if not fromfile:
+    #         try:
+    #             req = self._opener.open(
+    #                 'https://issa.beltelecom.by/cgi-bin/cgi.exe?function=is_lastcalls&action=report')
+    #             periods = 'CURRENT'
+    #             if period == 'current':
+    #                 periods = 'CURRENT'
+    #             elif period == 'previous':
+    #                 periods = '0'
+    #             req = self._opener.open('https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls',
+    #                                     urllib.urlencode(
+    #                                         [('periods', periods), ('action', 'setperiod'), ('x', '17'), ('y', '15')]))
+    #             req = self._opener.open(
+    #                 'https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls&action=refresh')
+    #             req = self._opener.open(
+    #                 'https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls&action=setfilter&filter=0')
+    #             req = self._opener.open(
+    #                 'https://issa.beltelecom.by:446/cgi-bin/cgi.exe?function=is_lastcalls&action=save&repFormat=1&repPostfix=2csv')
+    #             rawcsv = req.read().decode('cp1251')
+    #         except Exception as e:
+    #             self._set_last_error(str(e))
+    #             return False
+    #     else:
+    #         try:
+    #             import codecs
+    #             rawcsv = codecs.open(fromfile, encoding=encoding).read()
+    #         except Exception as e:
+    #             self._set_last_error(str(e))
+    #             return False
+    #     return rawcsv
 
-    def _parsesessions(self, row, title):
-        """parsing a row of cvs file"""
-        try:
-            for i, l in enumerate(title):
-                if l == u'Название услуги':
-                    title = row[i]
-                elif l == u'Дата':
-                    begin = datetime.datetime.strptime(row[i], '%d.%m.%Y  %H:%M:%S')
-                elif l == u'Окончание сессии':
-                    end = datetime.datetime.strptime(row[i], '%d.%m.%Y  %H:%M:%S')
-                elif l == u'Длительность':
-                    try:
-                        ttuple = time.strptime(row[i], "%d.%H:%M:%S")[2:6]
-                        duration = datetime.timedelta(days=ttuple[0],
-                                                      hours=ttuple[1], minutes=ttuple[2],
-                                                      seconds=ttuple[3])
-                    except Exception as e:
-                        ttuple = time.strptime(row[i], "%H:%M:%S")[3:6]
-                        duration = datetime.timedelta(hours=ttuple[0],
-                                                      minutes=ttuple[1], seconds=ttuple[2])
-                elif l == u'Вх. трафик':
-                    m = re.search(u"(\d*\.\d{0,5}).*?(Мб*)", row[i])
-                    if len(m.groups()) == 2:
-                        if m.group(2) == u'Мб':
-                            ingoing = float(m.group(1))
-                elif l == u'Исх. трафик':
-                    m = re.search(u"(\d*\.\d{0,5}).*?(Мб*)", row[i])
-                    if len(m.groups()) == 2:
-                        if m.group(2) == u'Мб':
-                            outgoing = float(m.group(1))
-                elif l == u'Сумма':
-                    m = re.search(u"(\d*)", row[i])
-                    cost = float(m.group(1))
-            try:
-                return Session(title, begin, end, duration, ingoing, outgoing, cost)
-            except:
-                return None
-        except Exception as e:
-            self._SetLastError(str(e))
-            return None
+    # def _parsesessions(self, row, title):
+    #     """parsing a row of cvs file"""
+    #     try:
+    #         for i, l in enumerate(title):
+    #             if l == u'Название услуги':
+    #                 title = row[i]
+    #             elif l == u'Дата':
+    #                 begin = datetime.datetime.strptime(row[i], '%d.%m.%Y  %H:%M:%S')
+    #             elif l == u'Окончание сессии':
+    #                 end = datetime.datetime.strptime(row[i], '%d.%m.%Y  %H:%M:%S')
+    #             elif l == u'Длительность':
+    #                 try:
+    #                     ttuple = time.strptime(row[i], "%d.%H:%M:%S")[2:6]
+    #                     duration = datetime.timedelta(days=ttuple[0],
+    #                                                   hours=ttuple[1], minutes=ttuple[2],
+    #                                                   seconds=ttuple[3])
+    #                 except Exception as e:
+    #                     ttuple = time.strptime(row[i], "%H:%M:%S")[3:6]
+    #                     duration = datetime.timedelta(hours=ttuple[0],
+    #                                                   minutes=ttuple[1], seconds=ttuple[2])
+    #             elif l == u'Вх. трафик':
+    #                 m = re.search(u"(\d*\.\d{0,5}).*?(Мб*)", row[i])
+    #                 if len(m.groups()) == 2:
+    #                     if m.group(2) == u'Мб':
+    #                         ingoing = float(m.group(1))
+    #             elif l == u'Исх. трафик':
+    #                 m = re.search(u"(\d*\.\d{0,5}).*?(Мб*)", row[i])
+    #                 if len(m.groups()) == 2:
+    #                     if m.group(2) == u'Мб':
+    #                         outgoing = float(m.group(1))
+    #             elif l == u'Сумма':
+    #                 m = re.search(u"(\d*)", row[i])
+    #                 cost = float(m.group(1))
+    #         try:
+    #             return Session(title, begin, end, duration, ingoing, outgoing, cost)
+    #         except:
+    #             return None
+    #     except Exception as e:
+    #         self._set_last_error(str(e))
+    #         return None
 
-    def SummarySessions(self, sessions):
-        '''Calculate summary info about sessions and return dictionary representing\
-(cost,duration,traf)'''
-        Cost = 0
-        Duration = datetime.timedelta()
-        Traf = 0
-        for session in sessions:
-            if hasattr(session, 'cost'):
-                Cost += session.cost
-            if hasattr(session, 'ingoing'):
-                Traf += session.ingoing
-            if hasattr(session, 'outgoing'):
-                Traf += session.outgoing
-            if hasattr(session, 'duration'):
-                Duration += session.duration
+#     def SummarySessions(self, sessions):
+#         '''Calculate summary info about sessions and return dictionary representing\
+# (cost,duration,traf)'''
+#         Cost = 0
+#         Duration = datetime.timedelta()
+#         Traf = 0
+#         for session in sessions:
+#             if hasattr(session, 'cost'):
+#                 Cost += session.cost
+#             if hasattr(session, 'ingoing'):
+#                 Traf += session.ingoing
+#             if hasattr(session, 'outgoing'):
+#                 Traf += session.outgoing
+#             if hasattr(session, 'duration'):
+#                 Duration += session.duration
+#
+#         return {'cost': Cost, 'duration': Duration, 'traf': Traf}
 
-        return {'cost': Cost, 'duration': Duration, 'traf': Traf}
+    # def GetLog(self, period='current', fromfile=None,
+    #            encoding='cp1251'):
+    #     """Return report of using connection. period='curent' or 'previous' """
+    #     raw_csv = self.GetLogRaw(period, fromfile, encoding=encoding)
+    #     if not raw_csv:
+    #         return False
+    #     # reader = UnicodeCSV.unicode_csv_reader(raw_csv.split('\n'), delimiter=';')
+    #     # title = reader.next()
+    #     # it = [k for k in [self._parsesessions(i, title) for i in reader] if k][::-1]
+    #     # return it
 
-    def GetLog(self, period='current', fromfile=None,
-               encoding='cp1251'):
-        """Return report of using connection. period='curent' or 'previous' """
-        raw_csv = self.GetLogRaw(period, fromfile, encoding=encoding)
-        if not raw_csv:
-            return False
-        # reader = UnicodeCSV.unicode_csv_reader(raw_csv.split('\n'), delimiter=';')
-        # title = reader.next()
-        # it = [k for k in [self._parsesessions(i, title) for i in reader] if k][::-1]
-        # return it
+    def print_to_console(self, s):
+        print(s)
 
     def print_info(self):
         '''Call GetInfo() and print'''
         info = self.get_account_info_page()
         if not info:
-            print ("Error " + self.LastError())
+            self.print_to_console("Error " + self.get_last_error())
             return False
         # if info.get('traf'):
         #     traf = u"Трафик  - %s %s" % (info.get('traf'),TRAF_MEASURE)
@@ -420,7 +428,7 @@ class ByFlyUser:
         #     duration = ''
         traf = ''
         duration = ''
-        print (u'''\
+        self.print_to_console('''\
 Абонент - %s
 Тариф   - %s
 Баланс  - %s %s
@@ -430,14 +438,14 @@ class ByFlyUser:
                info.balance, MONEY_MEASURE, traf, duration))
         return True
 
-    def PrintAdditionInfo(self, period=None):
-        '''Print summary information about sessions'''
-        s = (u'-' * 20).center(40) + '\n'
-        summary = self.SummarySessions(self.GetLog(period))
-        format_args = summary
-        format_args.update(globals())
-        s += u'''\
-Суммарный трафик - %(traf)s %(TRAF_MEASURE)s
-Превышение стоимости - %(cost)s %(MONEY_MEASURE)s
-Суммарное время online - %(duration)s''' % (format_args)
-        print (s)
+#     def PrintAdditionInfo(self, period=None):
+#         '''Print summary information about sessions'''
+#         s = (u'-' * 20).center(40) + '\n'
+#         summary = self.SummarySessions(self.GetLog(period))
+#         format_args = summary
+#         format_args.update(globals())
+#         s += u'''\
+# Суммарный трафик - %(traf)s %(TRAF_MEASURE)s
+# Превышение стоимости - %(cost)s %(MONEY_MEASURE)s
+# Суммарное время online - %(duration)s''' % (format_args)
+#         print (s)
