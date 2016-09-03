@@ -64,6 +64,10 @@ def log_to_file(filename, log_content, force=False):
         with codecs.open(filename, "w+", encoding="utf8") as f:
             f.write(log_content)
 
+def get_exception_str(e):
+    if hasattr(e, 'message'):
+        return e.message
+    return "{}".format(e)
 
 # Единицы измерения
 TRAF_MEASURE = 'Мб'
@@ -181,13 +185,13 @@ class ByFlyUser(object):
             log_to_file(self._Log1, html)
         except Exception as e:
             logger.exception(e)
-            self._set_last_error(str(e))
+            self._set_last_error(get_exception_str(e))
             return False
         try:
             return self.check_error_message(html) == M_OK
         except ByflyException as e:
             logger.exception(e)
-            self._set_last_error(str(e))
+            self._set_last_error(get_exception_str(e))
             return False
         # k = None
         # if res == M_REFRESH:
@@ -219,7 +223,7 @@ class ByFlyUser(object):
             html = r.text
             log_to_file(self._Log2, html)
         except Exception as e:
-            self._set_last_error(str(e))
+            self._set_last_error(get_exception_str(e))
             return False
         return self.parse_account_info(html)
         # m=re.search(
