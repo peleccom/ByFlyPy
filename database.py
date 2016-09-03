@@ -83,7 +83,7 @@ class Table(object):
         try:
             self._connection.execute(self.SQL_CREATE_TABLE_QUERY)
             self._connection.commit()
-        except:
+        except Exception as e:
             raise ErrorDatabase("Can't create new table")
 
     def add(self, record):
@@ -96,7 +96,7 @@ class Table(object):
         try:
             self._connection.execute(self.SQL_INSERT_QUERY, [record.login, record.password, record.alias])
             self._connection.commit()
-        except:
+        except Exception as e:
             raise ErrorDatabase("Can't add record")
 
     def get(self, query):

@@ -4,7 +4,11 @@ import unittest
 from ByFlyUser import ByFlyUser
 import os
 from database import Table, DBManager, Record, ErrorDatabase
-
+import database
+try:
+    import mock
+except:
+    from unittest import mock
 
 # class TestAccountParse(TestCase):
 #     def setUp(self):
@@ -19,7 +23,7 @@ from database import Table, DBManager, Record, ErrorDatabase
 
 
 class DBTest(TestCase):
-    FILENAME = "test.db"
+    FILENAME = ":memory:"
 
     def setUp(self):
         try:
@@ -48,7 +52,6 @@ class DBTest(TestCase):
         self._table.delete(record.pk)
         self.assertEqual(len(self._table.list()), 0)
 
-
     def test_get_non_exists(self):
         record = self._table.get(5)
         self.assertIsNone(record)
@@ -66,6 +69,40 @@ class DBTest(TestCase):
         self.assertIsNone(result3)
         self.assertEqual(result[0], result2[0])
         self.assertEqual(result[1], result2[1])
+
+    def test_wrong_db_file(self):
+        with mock.patch.object(database.db, 'connect', IOError()):
+            with self.assertRaises(ErrorDatabase):
+                table = Table(self.FILENAME)
+
+    def test_cant_create_table(self):
+        table = Table(self.FILENAME)
+        with mock.patch.object(table, '_connection') as mock_connection:
+            mock_connection.execute = mock.Mock(side_effect=ValueError("1"))
+            with self.assertRaises(ErrorDatabase):
+                table.create_table_if_not_exists()
+
+    def test_cant_add_record(self):
+        record = Record("a", "b", "c")
+        with mock.patch.object(self._table, '_connection') as mock_connection:
+            mock_connection.execute = mock.Mock(side_effect=ValueError("1"))
+            with self.assertRaises(ErrorDatabase):
+                self._table.add(record)
+
+
+    def test_cant_get(self):
+        count_before = len(self._table.list())
+        record = Record("test_cant_get", "test_cant_get", "test_cant_get")
+        self._table.add(record)
+        record = self._table.get("test_cant_get")
+        self.assertIsNotNone(record)
+        pk = record.pk
+        with mock.patch.object(self._table, '_connection') as mock_connection:
+            mock_connection.cursor = mock.Mock(side_effect=ValueError("1"))
+            record = self._table.get("test_cant_get")
+            self.assertIsNone(record)
+        self._table.delete(pk)
+        self.assertEqual(len(self._table.list()), count_before)
 
 
 if __name__ == '__main__':
