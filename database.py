@@ -67,7 +67,7 @@ class Table(object):
             self.create_table_if_not_exists()
             self._connection.row_factory = db.Row
         except Exception as e:
-            logging.exception(e.message)
+            logging.exception(e)
             raise ErrorDatabase("Can't open file %s" % filename)
 
     def close(self):
@@ -112,7 +112,7 @@ class Table(object):
             if row is not None:
                 return Record.from_cursor_row(row)
         except Exception as e:
-            logger.exception(e.message)
+            logger.exception(e)
             pass
         return None
 
@@ -191,7 +191,7 @@ def main():
                     record = Record(login, password, alias)
                     table.add(record)
                 except Exception as e:
-                    logger.exception(e.message)
+                    logger.exception(e)
                     pass
             if a.startswith('del '):
                 l, _, p = a.partition(" ")

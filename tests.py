@@ -71,7 +71,7 @@ class DBTest(TestCase):
         self.assertEqual(result[1], result2[1])
 
     def test_wrong_db_file(self):
-        with mock.patch.object(database.db, 'connect', IOError()):
+        with mock.patch.object(database.db, 'connect', side_effect=IOError()):
             with self.assertRaises(ErrorDatabase):
                 table = Table(self.FILENAME)
 
