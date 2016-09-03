@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals, absolute_import
 import codecs
 from unittest import TestCase
 import unittest
@@ -71,7 +73,7 @@ class DBTest(TestCase):
         self.assertEqual(result[1], result2[1])
 
     def test_wrong_db_file(self):
-        with mock.patch.object(database.db, 'connect', side_effect=IOError()):
+        with mock.patch.object(database.db, 'connect', side_effect=IOError("1")):
             with self.assertRaises(ErrorDatabase):
                 table = Table(self.FILENAME)
 
@@ -103,7 +105,6 @@ class DBTest(TestCase):
             self.assertIsNone(record)
         self._table.delete(pk)
         self.assertEqual(len(self._table.list()), count_before)
-
 
 if __name__ == '__main__':
     unittest.main()
