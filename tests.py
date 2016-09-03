@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import
 import codecs
+from tempfile import NamedTemporaryFile
 from unittest import TestCase
 import unittest
-from ByFlyUser import ByFlyUser
+from datetime import timedelta
+from decimal import Decimal
+import ByFlyUser
 import os
 from database import Table, DBManager, Record, ErrorDatabase
 import database
@@ -12,16 +15,6 @@ try:
 except:
     from unittest import mock
 
-# class TestAccountParse(TestCase):
-#     def setUp(self):
-#         self.html = codecs.open("2.html", encoding="utf8").read()
-#         self.byflyuser = ByFlyUser("test", "test")
-#
-#     def test_parse_balance(self):
-#         self.assertIsInstance(self.byflyuser.parse_account_info(self.html)['balance'], int)
-#
-#     def test_table_content(self): 
-#         print self.byflyuser.get_table_dict(self.html)
 
 
 class DBTest(TestCase):
@@ -106,5 +99,60 @@ class DBTest(TestCase):
         self._table.delete(pk)
         self.assertEqual(len(self._table.list()), count_before)
 
+
+class TestLogToFile(TestCase):
+
+    def test_log_to_file(self):
+        CONTENT = "test"
+        f = NamedTemporaryFile(delete=False)
+        filename = f.name
+        f.close()
+        ByFlyUser.log_to_file(filename, CONTENT)
+        self.assertEqual(os.path.getsize(filename), 0)
+        ByFlyUser.log_to_file(filename, CONTENT, True)
+        self.assertEqual(os.path.getsize(filename), len(CONTENT))
+
+    def test_log_if_debug(self):
+        CONTENT = "test"
+        f = NamedTemporaryFile(delete=False)
+        filename = f.name
+        f.close()
+        ByFlyUser._DEBUG_ = True
+        ByFlyUser.log_to_file(filename, CONTENT)
+        self.assertEqual(os.path.getsize(filename), len(CONTENT))
+        ByFlyUser._DEBUG_ = False
+
+class TestSessionClass(TestCase):
+    TITLE = "title"
+    BEGIN = "Jan 1"
+    END = "Feb 1"
+    DURATION = timedelta(hours=10)
+    INGOING = 10
+    OUTGOING = 5
+    COST = 15.5
+
+    def test_session(self):
+        session = ByFlyUser.Session(self.TITLE, self.BEGIN, self.END, self.DURATION,
+                                    self.INGOING, self.OUTGOING, self.COST)
+        str_repr = str(session)
+        self.assertEqual(str_repr, "Session<%s  %s>" % (self.BEGIN, self.END))
+        self.assertEqual(session.title, self.TITLE)
+        self.assertEqual(session.begin, self.BEGIN)
+        self.assertEqual(session.end, self.END)
+        self.assertEqual(session.duration, self.DURATION)
+        self.assertEqual(session.ingoing, self.INGOING)
+        self.assertEqual(session.outgoing, self.OUTGOING)
+        self.assertEqual(session.cost, self.COST)
+
+
+class TestUserInfoClass(TestCase):
+    FULL_NAME = "Иванов Иван Иванович"
+    PLAN = "Домосед"
+    BALANCE = Decimal(15.5)
+    def test_user_info(self):
+        user_info = ByFlyUser.UserInfo(self.FULL_NAME, self.PLAN, self.BALANCE)
+        self.assertEqual(user_info.full_name, self.FULL_NAME)
+        self.assertEqual(user_info.balance, self.BALANCE)
+        self.assertEqual(user_info.plan, self.PLAN)
 if __name__ == '__main__':
     unittest.main()
