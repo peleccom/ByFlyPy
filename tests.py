@@ -169,6 +169,13 @@ class TestUserInfoClass(TestCase):
         self.assertEqual(user_info.balance, self.BALANCE)
         self.assertEqual(user_info.plan, self.PLAN)
 
+class TestTotalStatInfoClass(TestCase):
+    def test_total_stat_info(self):
+        TRAF = 1000
+        COST = 10.5
+        total_stat_info = byflyuser.TotalStatInfo(TRAF, COST)
+        self.assertEqual(total_stat_info.total_cost, COST)
+        self.assertEqual(total_stat_info.total_traf, TRAF)
 
 class TestByFlyUserClass(TestCase):
     LOGIN = "test"
@@ -316,6 +323,15 @@ class TestStatPageParser(TestCase):
             self.assertEqual(session.ingoing, 13855.204)
             self.assertEqual(session.outgoing, 680.559)
             self.assertEqual(session.begin, datetime(year=2016, month=9, day=1, hour=13, minute=12, second=19))
+
+    def testadditionaldata(self):
+        with codecs.open("testdata/statistic_page.html", encoding='utf8') as f:
+            html = f.read()
+            byflyUser = byflyuser.ByFlyUser("demo", "demo")
+            with requests_mock.Mocker() as m:
+                m.get(byflyuser.ByFlyUser.URL_STATISTIC_PAGE, text=html)
+                byflyUser.print_additional_info()
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.CRITICAL)

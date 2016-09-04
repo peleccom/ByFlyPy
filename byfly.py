@@ -80,6 +80,9 @@ def check_image_filename(option, opt_str, value, parser):
         raise optparse.OptionValueError("option -s: Not correct file format. Use formats: %s" % __FIGURE_FORMATS__)
 
 
+class UI(object):
+    pass
+
 class Program(object):
     def ui(self, opt, showgraph=None):
         """
@@ -89,8 +92,11 @@ class Program(object):
             import_plot()
         user = byflyuser.ByFlyUser(opt.login, opt.password)
         if user.login():
+            if opt.quiet:
+                user.print_info(True)
+                return
             user.print_info()
-            # user.PrintAdditionInfo()
+            user.print_additional_info()
             if opt.graph and HAS_MATPLOT:
                 plt = plotinfo.Plotter()
                 if opt.imagefilename:
@@ -102,29 +108,31 @@ class Program(object):
                 if showgraph == 'always':
                     show = True
                 if opt.graph == 'time':
-                    plt.plot_time_allocation(user.get_log(), title=user.info, show=show, fname=fname)
+                    plt.plot_time_allocation(user.get_log(previous_period=opt.previous_period), title=user.info, show=show, fname=fname)
                 elif opt.graph == 'traf':
-                    plt.plot_traf_allocation(user.get_log(), title=user.info, show=show, fname=fname)
+                    plt.plot_traf_allocation(user.get_log(previous_period=opt.previous_period), title=user.info, show=show, fname=fname)
         else:
             print("Can't Log: " + user.get_last_error())
 
     def setup_cmd_parser(self):
         p = optparse.OptionParser(description='Проверка баланса ByFly', prog='ByFlyPy',
                                   version='%%prog %s' % __VERSION__)
-        p.add_option("-i", action="store_true", dest="interactive", help="Enable interactive mode")
-        p.add_option("-l", "--login", action="store", type="string", dest="login", help='Login')
+        p.add_option("-i", action="store_true", dest="interactive", help="enable interactive mode")
+        p.add_option("-l", "--login", action="store", type="string", dest="login", help='login')
         p.add_option("--list", type="string", dest="check_list", metavar='<filename>',
-                     help="Check accounts in file. Each line of file must be login:password")
-        p.add_option("-p", "--p", action="store", type="string", dest="password", help='Password')
+                     help="check accounts in file. Each line of file must be login:password")
+        p.add_option("-p", "--p", action="store", type="string", dest="password", help='password')
         p.add_option("-g", "--graph", action="store", dest="graph", type='choice',
-                     help="Plot a graph. Parameters MUST BE traf or time ", choices=['traf', 'time'])
+                     help="plot a graph. Parameters MUST BE traf or time ", choices=['traf', 'time'])
+        p.add_option("--previous", action="store_true", dest="previous_period", help='get statistic for previous month', default=False)
         p.add_option("-s", "--save", action='callback', help='save graph to file', callback=check_image_filename,
                      type='string')
-        p.add_option("-n", "--nologo", action='store_true', dest='nologo', help="Don't show logo at startup")
+        p.add_option("-n", "--nologo", action='store_true', dest='nologo', help="don't show logo at startup")
         p.add_option("--pause", action="store_true", dest="pause", default=False,
-                     help="Don't close console window immediately")
-        p.add_option("-d", "--debug", action="store_true", dest="debug", help="Enable debug", default=False)
-        p.add_option("--db", action="store", type="string", dest="db", help="Database filename")
+                     help="don't close console window immediately")
+        p.add_option("-d", "--debug", action="store_true", dest="debug", help="enable debug", default=False)
+        p.add_option("--db", action="store", type="string", dest="db", help="database filename")
+        p.add_option("-q", action="store_true",dest="quiet", help="print balance and exit", default=False)
         p.set_defaults(
             interactive=False,
             graph=None,
@@ -235,7 +243,7 @@ class Program(object):
         if opt.pause:
             atexit.register(pause)
 
-        if not opt.nologo:
+        if not opt.nologo and not opt.quiet:
             parser.print_version()
         database_filename = opt.db if opt.db else _DEFAULT_DATABASE_FILENAME
         if opt.interactive:

@@ -9,7 +9,7 @@
 # Copyright:   (c) Александр 2011
 # -------------------------------------------------------------------------------
 '''User Class'''
-from __future__ import unicode_literals, absolute_import
+from __future__ import unicode_literals, absolute_import, print_function
 import re
 import codecs
 from decimal import Decimal
@@ -115,6 +115,19 @@ class UserInfo(object):
     def balance(self):
         return self._balance
 
+
+class TotalStatInfo(object):
+    def __init__(self, total_traf, total_cost):
+        self._total_cost = total_cost
+        self._total_traf = total_traf
+
+    @property
+    def total_cost(self):
+        return self._total_cost
+
+    @property
+    def total_traf(self):
+        return self._total_traf
 
 class ByFlyUser(object):
     """Interface to get information
@@ -237,75 +250,43 @@ class ByFlyUser(object):
             self._set_last_error(get_exception_str(e))
             return False
         return self.parse_account_info(html)
-        # m=re.search(
-        # u'alt="Тарифный план"></td>.*?<td>&nbsp;<b class=body>(.*?)<', html, 16)
-        # if m:
-        #     s = m.group(1)
-        #     s = s.strip()
-        #     k['tarif'] = s
-        # else:
-        #     self._SetLastError(u'Не определен тариф')
-        #     return False
-        # m=re.search(u'alt="Пользователь" title="Пользователь"></td>.*?<td>&nbsp;<b class=body>(.*?)</b>',html,16)
-        # if m:
-        #     s=m.group(1)
-        #     s=s.strip()
-        #     k['FIO']=s
-        # m=re.search(u'длительность сессий</td>.*?<td align=center>&nbsp;(\d*:(\d*))',html,16)
-        # if m:
-        #     s=m.group(1)
-        #     s=s.strip()
-        #     comp = s.split(':')
-        #     comp = map(int,comp)
-        #     if len(comp) == 2:
-        #         #min:sec
-        #         k['duration'] = datetime.timedelta(minutes=comp[0], seconds=comp[1])
-        #     elif len(comp) == 1:
-        #         #sec
-        #         k['duration'] = datetime.timedelta(seconds=comp[0])
-        #     else:
-        #         #zero field?
-        #         k['duration'] = datetime.timedelta()
-        #
-        # m=re.search(u'суммарный.трафик</td>.*?<td.align=center>.*?;(\d*(\.(\d*))?)',html,16)
-        # if m:
-        #     s=m.group(1)
-        #     s=s.strip()
-        #     try:
-        #         k['traf']=float(s)
-        #     except:
-        #         pass
-
-        # s=str(k.get('traf'))+' '+TRAF_MEASURE if k.get('traf') else k.get('duration')
-        # self.info=u"%s - %s\n%s %s - %s"%(k.get("FIO"),k.get('tarif'),k.get('balance'),MONEY_MEASURE,s)
-        # return k
 
     def get_table_dict(self, html):
+        STRIP_CHARS = ": \r\n"
+        TAGS_RE = re.compile('<[^<]+?>')
         k = dict()
-        matches = re.findall("<tr[^>]*>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*</tr>",
+        matches = re.findall("<tr[^>]*>[^<]*<td[^>]*>(.*?)</td[^>]*>[^<]*<td[^>]*>(.*?)</td[^>]*>[^<]*</tr>",
                              html, re.DOTALL)
         for match in matches:
-            k[match[0]] = match[1]
+            key = match[0]
+            key = re.sub(TAGS_RE, '', key)
+            key = key.strip(STRIP_CHARS)
+            value = match[1]
+            value = re.sub(TAGS_RE, '', value)
+            value = value.strip(STRIP_CHARS)
+            k[key] = value
         return k
+
+    def strip_number_field(self, s):
+        res = ''
+        for char in s:
+            if char.isdigit() or char in [',', '.']:
+                res += char
+            else:
+                break
+        return res
 
     def parse_account_info(self, html):
         FULL_NAME_KEY = "Абонент"
         PLAN_KEY = "Тарифный план на услуги"
         BALANCE_REGEXPR_PATTERN = 'Актуальный баланс: <b>(.*)</b>'
 
-        def strip_modey_field(s):
-            res = ''
-            for char in s:
-                if char.isdigit() or char in [',', '.']:
-                    res += char
-            return res
-
         k = dict()
         m = re.search(BALANCE_REGEXPR_PATTERN, html)
         if m:
             s = m.group(1)
             s = s.strip(" .")
-            s = strip_modey_field(s)
+            s = self.strip_number_field(s)
             try:
                 balance_int = Decimal(s)
             except Exception as e:
@@ -321,11 +302,11 @@ class ByFlyUser(object):
         full_name = table_k[FULL_NAME_KEY]
         return UserInfo(full_name, plan, balance)
 
-    def get_log_raw(self, period='current', fromfile=None, encoding='cp1251'):
+    def get_log_raw(self, previous_period=False, fromfile=None, encoding='cp1251'):
         """Return report of using connection as raw csv. period='curent' or 'previous. If """
         if not fromfile:
             try:
-                param = 'this_month' if period == 'current' else 'last_month'
+                param = 'this_month' if not previous_period else 'last_month'
                 r = self.session.get(self.URL_STATISTIC_PAGE + '?{}'.format(param))
                 if r.status_code != 200:
                     logger.debug("Statistic page error %s", r.status_code)
@@ -363,56 +344,62 @@ class ByFlyUser(object):
     #
     #         return {'cost': Cost, 'duration': Duration, 'traf': Traf}
 
-    def get_log(self, period='current', fromfile=None,
+    def get_log(self, previous_period=False, fromfile=None,
                 encoding='cp1251'):
         """Return report of using connection. period='curent' or 'previous' """
-        raw_html = self.get_log_raw(period, fromfile, encoding=encoding)
+        raw_html = self.get_log_raw(previous_period, fromfile, encoding=encoding)
         if not raw_html:
             return False
         return StatPageParser.parse_html(raw_html)
 
-    def print_to_console(self, s):
-        print(s)
+    def print_to_console(self, s, end="\n"):
+        if not end:
+            print(s, end=end)
+        else:
+            print(s)
 
-    def print_info(self):
+    def print_info(self, only_balance=False):
         '''Call GetInfo() and print'''
         info = self.get_account_info_page()
         if not info:
             self.print_to_console("Error " + self.get_last_error())
             return False
-        # if info.get('traf'):
-        #     traf = u"Трафик  - %s %s" % (info.get('traf'),TRAF_MEASURE)
-        # else:
-        #     traf = ''
-        # if info.get('duration'):
-        #     duration = u"Длительность  - %s" % (info.get('duration'))
-        # else:
-        #     duration = ''
+        if only_balance:
+            self.print_to_console("{}".format(info.balance), end="")
+            return True
         traf = ''
         duration = ''
         self.print_to_console('''\
 Абонент - %s
 Тариф   - %s
-Баланс  - %s %s
-%s
-%s\
-        ''' % (info.full_name, info.plan,
+Баланс  - %s %s %s %s''' % (info.full_name, info.plan,
                info.balance, MONEY_MEASURE, traf, duration))
         return True
 
+    def get_addtional_info(self):
+        KEY_SUM_COST = "Сумма"
+        KEY_SUM_TRAF = "Суммарный трафик"
+        raw_html = self.get_log_raw()
+        if not raw_html:
+            return None
+        try:
+            d = self.get_table_dict(raw_html)
+            cost = d[KEY_SUM_COST]
+            traf = d[KEY_SUM_TRAF]
+            cost = self.strip_number_field(cost)
+            traf = self.strip_number_field(traf)
+            return TotalStatInfo(traf, cost)
+        except Exception as e:
+            return None
 
-# def PrintAdditionInfo(self, period=None):
-#         '''Print summary information about sessions'''
-#         s = (u'-' * 20).center(40) + '\n'
-#         summary = self.SummarySessions(self.GetLog(period))
-#         format_args = summary
-#         format_args.update(globals())
-#         s += u'''\
-# Суммарный трафик - %(traf)s %(TRAF_MEASURE)s
-# Превышение стоимости - %(cost)s %(MONEY_MEASURE)s
-# Суммарное время online - %(duration)s''' % (format_args)
-#         print (s)
-
+    def print_additional_info(self):
+        total_stat_info = self.get_addtional_info()
+        if total_stat_info:
+            s = 'Суммарный трафик - {traf} {traf_measure}\nПревышение стоимости - {cost} {money_measure}'.format(traf=total_stat_info.total_traf,
+                                                            cost=total_stat_info.total_cost, money_measure=MONEY_MEASURE,
+                                                            traf_measure=TRAF_MEASURE)
+            self.print_to_console(s)
+            return True
 
 class StatPageParser(object):
     TABLE_RE = '<table[^>]* class="content">.*?</table>'
