@@ -62,7 +62,7 @@ class Table(object):
     SQL_INSERT_QUERY = '''INSERT INTO USERS (login,pass,alias) VALUES (?,?,?)'''
     SQL_LIST_QUERY = '''SELECT * FROM USERS'''
     SQL_DELETE_QUERY = '''DELETE FROM USERS WHERE id=?'''
-    SQL_GET_QUERY = '''SELECT * FROM USERS WHERE login=? or alias=?'''
+    SQL_GET_QUERY = '''SELECT * FROM USERS WHERE login=? OR alias=?'''
 
     def __init__(self, filename=DEFAULT_DB_FILENAME):
         try:
@@ -145,6 +145,7 @@ class DBManager(object):
     """
         Interface to access to database with login and passwords
     """
+
     def __init__(self, table):
         self._table = table
 
@@ -159,10 +160,44 @@ class DBManager(object):
         return None
 
 
-def main():
+def handle_interactive_mode(table):  # pragma: no cover
+    while True:
+        print(u'''Manage database:
+list     - list of entries
+add      - add new entry
+del <id> - delete entry by id
+q        - quit
+''')
+        a = raw_input(">>")
+        if a == 'list':
+            print("%5s|%15s|%15s|%15s|\n" % ('id', 'login', 'password', 'alias'))
+            for record in table.list():
+                print("%5s|%15s|%15s|%15s|" % (record.pk, record.login, '*', record.alias))
+        if a == 'q':
+            return
+        if a == 'add':
+            try:
+                login = str(raw_input('login:'))
+                if not login:
+                    continue
+                password = str(getpass.getpass('password:'))
+                if not password:
+                    continue
+                alias = str(raw_input('alias:'))
+                record = Record(login, password, alias)
+                table.add(record)
+            except Exception as e:
+                logger.exception(e)
+                pass
+        if a.startswith('del '):
+            l, _, p = a.partition(" ")
+            table.delete(p)
 
+
+def main():
     if len(sys.argv) == 1:
         print('database.py <database_filename>')
+        sys.exit(1)
     else:
         table = None
         try:
@@ -170,37 +205,8 @@ def main():
         except ErrorDatabase as e:
             print(e)
             exit(1)
-        while True:
-            print(u'''Manage database:
-    list     - list of entries
-    add      - add new entry
-    del <id> - delete entry by id
-    q        - quit
-    ''')
-            a = raw_input(">>")
-            if a == 'list':
-                print("%5s|%15s|%15s|%15s|\n" % ('id', 'login', 'password', 'alias'))
-                for record in table.list():
-                    print("%5s|%15s|%15s|%15s|" % (record.pk, record.login, '*', record.alias))
-            if a == 'q':
-                exit()
-            if a == 'add':
-                try:
-                    login = str(raw_input('login:'))
-                    if not login:
-                        continue
-                    password = str(getpass.getpass('password:'))
-                    if not password:
-                        continue
-                    alias = str(raw_input('alias:'))
-                    record = Record(login, password, alias)
-                    table.add(record)
-                except Exception as e:
-                    logger.exception(e)
-                    pass
-            if a.startswith('del '):
-                l, _, p = a.partition(" ")
-                table.delete(p)
+        handle_interactive_mode(table)
+
 
 if __name__ == '__main__':
     main()
