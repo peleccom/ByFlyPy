@@ -286,6 +286,7 @@ class TestMainProg(TestCase):
             graph = False
             login = "test"
             password = "test"
+            quiet = False
         with requests_mock.Mocker() as m:
             f = codecs.open("testdata/account_page.html", 'r', encoding='utf8')
             account_raw_data = f.read()
