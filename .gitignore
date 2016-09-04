@@ -5,3 +5,4 @@
 *.png
 .idea/
 .coverage
+coverage.xml
