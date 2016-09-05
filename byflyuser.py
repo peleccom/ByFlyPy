@@ -270,11 +270,12 @@ class ByFlyUser(object):
     def strip_number_field(self, s):
         res = ''
         for char in s:
-            if char.isdigit() or char in [',', '.']:
+            if char.isdigit() or char in ['-', ',', '.']:
                 res += char
             else:
                 break
-        return res
+        res = res.replace(",", ".")
+        return Decimal(res)
 
     def parse_account_info(self, html):
         FULL_NAME_KEY = "Абонент"

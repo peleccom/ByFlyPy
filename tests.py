@@ -220,6 +220,13 @@ class TestByFlyUserClass(TestCase):
         with mock.patch.object(self._byflyuser.session, 'post', side_effect=ValueError("1")):
             self.assertFalse(self._byflyuser.login())
 
+
+    def test_number_parser(self):
+        byfly_user = byflyuser.ByFlyUser("demo", "demo")
+        self.assertEqual(byfly_user.strip_number_field("1.25 руб"), 1.25)
+        self.assertEqual(byfly_user.strip_number_field("1,25 руб"), 1.25)
+        self.assertEqual(byfly_user.strip_number_field("-1,25 руб"), -1.25)
+
     def test_acc_info(self):
         with requests_mock.Mocker() as m:
             m.post(self._byflyuser.URL_LOGIN_PAGE, text=byflyuser.START_PAGE_MARKER)
