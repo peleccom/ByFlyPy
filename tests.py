@@ -184,48 +184,52 @@ class TestByFlyUserClass(TestCase):
     def setUp(self):
         self._byflyuser = byflyuser.ByFlyUser(self.LOGIN, self.PASSWORD)
 
-    def test__empty_login(self):
+    def test_empty_login(self):
         byflyUser = byflyuser.ByFlyUser("", "")
-        self.assertFalse(byflyUser.login())
+        with self.assertRaises(byflyuser.ByflyAuthException):
+            byflyUser.login()
 
     def test_login(self):
         with requests_mock.Mocker() as m:
             m.post(self._byflyuser.URL_LOGIN_PAGE, status_code=404)
-            self.assertFalse(self._byflyuser.login())
+            with self.assertRaises(byflyuser.ByflyInvalidResponseException):
+                self._byflyuser.login()
 
             # Empty response
             m.post(self._byflyuser.URL_LOGIN_PAGE)
-            self.assertFalse(self._byflyuser.login())
+            with self.assertRaises(byflyuser.ByflyEmptyResponseException):
+                self._byflyuser.login()
             self.assertIsNotNone(self._byflyuser.get_last_error())
             m.post(self._byflyuser.URL_LOGIN_PAGE, text=byflyuser.START_PAGE_MARKER)
             self.assertTrue(self._byflyuser.login())
             # BAN
             m.post(self._byflyuser.URL_LOGIN_PAGE, text=self._byflyuser.LoginErrorMessages.ERR_BAN)
-            self.assertFalse(self._byflyuser.login())
+            with self.assertRaises(byflyuser.ByflyBanException):
+                self._byflyuser.login()
             # Wrong cred
             m.post(self._byflyuser.URL_LOGIN_PAGE, text=self._byflyuser.LoginErrorMessages.ERR_INCORRECT_CRED)
-            self.assertFalse(self._byflyuser.login())
-            self.assertIsInstance(self._byflyuser.get_last_exception(), byflyuser.ByflyAuthException)
+            with self.assertRaises(byflyuser.ByflyAuthException):
+                self._byflyuser.login()
             # no known marker found
 
             m.post(self._byflyuser.URL_LOGIN_PAGE, text="test")
             self.assertFalse(self._byflyuser.login())
 
             m.post(self._byflyuser.URL_LOGIN_PAGE, text=self._byflyuser.LoginErrorMessages.ERR_STUCK_IN_LOGIN)
-            self.assertFalse(self._byflyuser.login())
+            self._byflyuser.login()
 
             m.post(self._byflyuser.URL_LOGIN_PAGE, text=self._byflyuser.LoginErrorMessages.ERR_TIMEOUT_LOGOUT)
             self.assertFalse(self._byflyuser.login())
 
         with mock.patch.object(self._byflyuser.session, 'post', side_effect=ValueError("1")):
-            self.assertFalse(self._byflyuser.login())
+            with self.assertRaises(byflyuser.ByflyInvalidResponseException):
+                self._byflyuser.login()
 
 
     def test_number_parser(self):
-        byfly_user = byflyuser.ByFlyUser("demo", "demo")
-        self.assertEqual(byfly_user.strip_number_field("1.25 руб"), 1.25)
-        self.assertEqual(byfly_user.strip_number_field("1,25 руб"), 1.25)
-        self.assertEqual(byfly_user.strip_number_field("-1,25 руб"), -1.25)
+        self.assertEqual(byflyuser.PageParser.strip_number_field("1.25 руб"), 1.25)
+        self.assertEqual(byflyuser.PageParser.strip_number_field("1,25 руб"), 1.25)
+        self.assertEqual(byflyuser.PageParser.strip_number_field("-1,25 руб"), -1.25)
 
     def test_acc_info(self):
         with requests_mock.Mocker() as m:
@@ -235,13 +239,13 @@ class TestByFlyUserClass(TestCase):
             account_raw_data = f.read()
             f.close()
             m.get(self._byflyuser.URL_ACCOUNT_PAGE, text=account_raw_data)
-
+            ui = byfly.UI(self._byflyuser)
             with mock.patch.object(self._byflyuser.session, 'get', side_effect=ValueError("1")):
                 self.assertFalse(self._byflyuser.get_account_info_page())
-                self.assertFalse(self._byflyuser.print_info())
+                self.assertFalse(ui.print_info())
 
             self.assertTrue(self._byflyuser.get_account_info_page())
-            self.assertTrue(self._byflyuser.print_info())
+            self.assertTrue(ui.print_info())
 
 
 class TestMainProg(TestCase):
@@ -312,9 +316,9 @@ class TestMainProg(TestCase):
 
 class TestServerConnection(TestCase):
     def test_wrong_password(self):
-        byflyUser = byflyuser.ByFlyUser("demo", "demo")
-        self.assertFalse(byflyUser.login())
-        self.assertIsInstance(byflyUser.get_last_exception(), byflyuser.ByflyAuthException)
+        byfly_user = byflyuser.ByFlyUser("demo", "demo")
+        with self.assertRaises(byflyuser.ByflyAuthException):
+            byfly_user.login()
 
 
 
@@ -338,7 +342,8 @@ class TestStatPageParser(TestCase):
             byflyUser = byflyuser.ByFlyUser("demo", "demo")
             with requests_mock.Mocker() as m:
                 m.get(byflyuser.ByFlyUser.URL_STATISTIC_PAGE, text=html)
-                byflyUser.print_additional_info()
+                ui = byfly.UI(byflyUser)
+                ui.print_additional_info()
 
 
 if __name__ == '__main__':

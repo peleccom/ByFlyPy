@@ -11,7 +11,7 @@
 # -------------------------------------------------------------------------------
 # To install MatPlotLib in Debian/Ubuntu Linux run
 # > sudo apt-get install python-matplotlib
-from __future__ import unicode_literals, absolute_import
+from __future__ import unicode_literals, absolute_import, print_function
 import logging
 import optparse
 import atexit
@@ -81,7 +81,41 @@ def check_image_filename(option, opt_str, value, parser):
 
 
 class UI(object):
-    pass
+    def __init__(self, byfly_user):
+        self._byfly_user = byfly_user
+
+    def print_additional_info(self):
+        total_stat_info = self._byfly_user.get_additional_info()
+        if total_stat_info:
+            s = 'Суммарный трафик - {traf} {traf_measure}\nПревышение стоимости - {cost} {money_measure}'.format(traf=total_stat_info.total_traf,
+                                                            cost=total_stat_info.total_cost, money_measure=self._byfly_user.get_money_measure(),
+                                                            traf_measure=self._byfly_user.get_traf_measure())
+            self.print_to_console(s)
+            return True
+
+    def print_to_console(self, s, end="\n"):
+        if not end:
+            print(s, end=end)
+        else:
+            print(s)
+
+    def print_info(self, only_balance=False):
+        '''Call GetInfo() and print'''
+        info = self._byfly_user.get_account_info_page()
+        if not info:
+            return False
+        if only_balance:
+            self.print_to_console("{}".format(info.balance), end="")
+            return True
+        traf = ''
+        duration = ''
+        self.print_to_console('''\
+Абонент - %s
+Тариф   - %s
+Баланс  - %s %s %s %s''' % (info.full_name, info.plan,
+               info.balance, self._byfly_user.get_money_measure(), traf, duration))
+        return True
+
 
 class Program(object):
     def ui(self, opt, showgraph=None):
@@ -91,28 +125,32 @@ class Program(object):
         if opt.graph:
             import_plot()
         user = byflyuser.ByFlyUser(opt.login, opt.password)
-        if user.login():
-            if opt.quiet:
-                user.print_info(True)
-                return
-            user.print_info()
-            user.print_additional_info()
-            if opt.graph and HAS_MATPLOT:
-                plt = plotinfo.Plotter()
-                if opt.imagefilename:
-                    fname = opt.imagefilename
-                    show = False
-                else:
-                    show = True
-                    fname = None
-                if showgraph == 'always':
-                    show = True
-                if opt.graph == 'time':
-                    plt.plot_time_allocation(user.get_log(previous_period=opt.previous_period), title=user.info, show=show, fname=fname)
-                elif opt.graph == 'traf':
-                    plt.plot_traf_allocation(user.get_log(previous_period=opt.previous_period), title=user.info, show=show, fname=fname)
-        else:
-            print("Can't Log: " + user.get_last_error())
+        ui = UI(user)
+        try:
+            user.login()
+        except byflyuser.ByflyException as e:
+            print(byflyuser.get_exception_str(e))
+            return 2
+        if opt.quiet:
+            ui.print_info(True)
+            return
+        ui.print_info()
+        ui.print_additional_info()
+        if opt.graph and HAS_MATPLOT:
+            plt = plotinfo.Plotter()
+            if opt.imagefilename:
+                fname = opt.imagefilename
+                show = False
+            else:
+                show = True
+                fname = None
+            if showgraph == 'always':
+                show = True
+            if opt.graph == 'time':
+                plt.plot_time_allocation(user.get_log(previous_period=opt.previous_period), title=user.info, show=show, fname=fname)
+            elif opt.graph == 'traf':
+                plt.plot_traf_allocation(user.get_log(previous_period=opt.previous_period), title=user.info, show=show, fname=fname)
+
 
     def setup_cmd_parser(self):
         p = optparse.OptionParser(description='Проверка баланса ByFly', prog='ByFlyPy',
@@ -223,7 +261,7 @@ class Program(object):
                 print("Login not found")
                 sys.exit(1)
         # command line
-        self.ui(opt)
+        return self.ui(opt)
 
     def main(self):
         parser = self.setup_cmd_parser()
@@ -236,7 +274,7 @@ class Program(object):
 
         # Enable/Disable Debug mode
         byflyuser._DEBUG_ = opt.debug
-        log_level = logging.DEBUG if opt.debug else logging.ERROR
+        log_level = logging.DEBUG if opt.debug else logging.CRITICAL
         logging.basicConfig(stream=sys.stdout, level=log_level)
 
         # pause at exit?
@@ -251,8 +289,8 @@ class Program(object):
         elif opt.check_list:
             self.list_checker_handler(opt)
         else:
-            self.non_interactive_mode_handler(opt, database_filename)
-
+            result_code = self.non_interactive_mode_handler(opt, database_filename)
+            sys.exit(result_code)
 
 if __name__ == "__main__":
     Program().main()

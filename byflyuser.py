@@ -32,10 +32,11 @@ class ByflyEmptyResponseException(ByflyException):
 class ByflyBanException(ByflyException):
     pass
 
-
 class ByflyAuthException(ByflyException):
     pass
 
+class ByflyInvalidResponseException(ByflyException):
+    pass
 
 M_BAN = 0
 M_SESSION = 1
@@ -137,7 +138,7 @@ class ByFlyUser(object):
         user.PrintInfo() #print account info
     """
 
-    class LoginErrorMessages:
+    class LoginErrorMessages(object):
         ERR_BAN = 'Вы совершаете слишком частые попытки авторизации'
         ERR_STUCK_IN_LOGIN = 'Осуществляется вход в систему'
         ERR_TIMEOUT_LOGOUT = 'Сеанс работы после определенного периода бездействия заканчивается'
@@ -190,10 +191,9 @@ class ByFlyUser(object):
     def login(self):
         """
         Function log into byfly profile.
-        :return: True if sucess
         """
         if not self._login and not self._password:
-            return False
+            raise ByflyAuthException("Пустой пароль или логин")
         LANG_ID = 2
         data = {
             'Lang': LANG_ID,
@@ -203,35 +203,19 @@ class ByFlyUser(object):
         try:
             r = self.session.post(self.URL_LOGIN_PAGE, data=data)
             if r.status_code != 200:
-                logger.debug("Login status code is %s", r.status_code)
-                return False
+                s = "Login status code is {}".format(r.status_code)
+                logger.debug(s)
+                raise ByflyInvalidResponseException(s)
             html = r.text
             log_to_file(self._Log1, html)
         except Exception as e:
-            logger.exception(e)
-            self._set_last_error(get_exception_str(e))
-            return False
+            logger.exception(get_exception_str(e))
+            raise ByflyInvalidResponseException(get_exception_str(e))
         try:
             return self.check_error_message(html) == M_OK
         except ByflyException as e:
-            logger.exception(e)
-            self._set_last_error(get_exception_str(e), e)
-            return False
-            # k = None
-            # if res == M_REFRESH:
-            #     k = self.get_info()
-            #     if k:
-            #         return True
-            #     else:
-            #         ## Error while get info
-            #         return False
-            # elif res == M_OK:
-            #     return True
-            # self._SetLastError(res)
-            # return False
-
-    def _get_table_value(self, html, key):
-        pass
+            logger.exception(get_exception_str(e))
+            raise
 
     def get_account_info_page(self):
         """
@@ -249,59 +233,7 @@ class ByFlyUser(object):
         except Exception as e:
             self._set_last_error(get_exception_str(e))
             return False
-        return self.parse_account_info(html)
-
-    def get_table_dict(self, html):
-        STRIP_CHARS = ": \r\n"
-        TAGS_RE = re.compile('<[^<]+?>')
-        k = dict()
-        matches = re.findall("<tr[^>]*>[^<]*<td[^>]*>(.*?)</td[^>]*>[^<]*<td[^>]*>(.*?)</td[^>]*>[^<]*</tr>",
-                             html, re.DOTALL)
-        for match in matches:
-            key = match[0]
-            key = re.sub(TAGS_RE, '', key)
-            key = key.strip(STRIP_CHARS)
-            value = match[1]
-            value = re.sub(TAGS_RE, '', value)
-            value = value.strip(STRIP_CHARS)
-            k[key] = value
-        return k
-
-    def strip_number_field(self, s):
-        res = ''
-        for char in s:
-            if char.isdigit() or char in ['-', ',', '.']:
-                res += char
-            else:
-                break
-        res = res.replace(",", ".")
-        return Decimal(res)
-
-    def parse_account_info(self, html):
-        FULL_NAME_KEY = "Абонент"
-        PLAN_KEY = "Тарифный план на услуги"
-        BALANCE_REGEXPR_PATTERN = 'Актуальный баланс: <b>(.*)</b>'
-
-        k = dict()
-        m = re.search(BALANCE_REGEXPR_PATTERN, html)
-        if m:
-            s = m.group(1)
-            s = s.strip(" .")
-            s = self.strip_number_field(s)
-            try:
-                balance_int = Decimal(s)
-            except Exception as e:
-                logger.exception(e)
-                self._set_last_error('Не определен баланс')
-                return False
-            balance = balance_int
-        else:
-            self._set_last_error('Не определен баланс')
-            return False
-        table_k = self.get_table_dict(html)
-        plan = table_k[PLAN_KEY]
-        full_name = table_k[FULL_NAME_KEY]
-        return UserInfo(full_name, plan, balance)
+        return AccountPageParser.parse_user_info(html)
 
     def get_log_raw(self, previous_period=False, fromfile=None, encoding='cp1251'):
         """Return report of using connection as raw csv. period='curent' or 'previous. If """
@@ -327,24 +259,6 @@ class ByFlyUser(object):
                 return False
         return raw_html
 
-    #     def SummarySessions(self, sessions):
-    #         '''Calculate summary info about sessions and return dictionary representing\
-    # (cost,duration,traf)'''
-    #         Cost = 0
-    #         Duration = datetime.timedelta()
-    #         Traf = 0
-    #         for session in sessions:
-    #             if hasattr(session, 'cost'):
-    #                 Cost += session.cost
-    #             if hasattr(session, 'ingoing'):
-    #                 Traf += session.ingoing
-    #             if hasattr(session, 'outgoing'):
-    #                 Traf += session.outgoing
-    #             if hasattr(session, 'duration'):
-    #                 Duration += session.duration
-    #
-    #         return {'cost': Cost, 'duration': Duration, 'traf': Traf}
-
     def get_log(self, previous_period=False, fromfile=None,
                 encoding='cp1251'):
         """Return report of using connection. period='curent' or 'previous' """
@@ -353,56 +267,76 @@ class ByFlyUser(object):
             return False
         return StatPageParser.parse_html(raw_html)
 
-    def print_to_console(self, s, end="\n"):
-        if not end:
-            print(s, end=end)
-        else:
-            print(s)
-
-    def print_info(self, only_balance=False):
-        '''Call GetInfo() and print'''
-        info = self.get_account_info_page()
-        if not info:
-            self.print_to_console("Error " + self.get_last_error())
-            return False
-        if only_balance:
-            self.print_to_console("{}".format(info.balance), end="")
-            return True
-        traf = ''
-        duration = ''
-        self.print_to_console('''\
-Абонент - %s
-Тариф   - %s
-Баланс  - %s %s %s %s''' % (info.full_name, info.plan,
-               info.balance, MONEY_MEASURE, traf, duration))
-        return True
-
-    def get_addtional_info(self):
-        KEY_SUM_COST = "Сумма"
-        KEY_SUM_TRAF = "Суммарный трафик"
+    def get_additional_info(self):
         raw_html = self.get_log_raw()
-        if not raw_html:
-            return None
-        try:
-            d = self.get_table_dict(raw_html)
-            cost = d[KEY_SUM_COST]
-            traf = d[KEY_SUM_TRAF]
-            cost = self.strip_number_field(cost)
-            traf = self.strip_number_field(traf)
-            return TotalStatInfo(traf, cost)
-        except Exception as e:
-            return None
+        return StatPageParser.parse_total_stat_info(raw_html)
 
-    def print_additional_info(self):
-        total_stat_info = self.get_addtional_info()
-        if total_stat_info:
-            s = 'Суммарный трафик - {traf} {traf_measure}\nПревышение стоимости - {cost} {money_measure}'.format(traf=total_stat_info.total_traf,
-                                                            cost=total_stat_info.total_cost, money_measure=MONEY_MEASURE,
-                                                            traf_measure=TRAF_MEASURE)
-            self.print_to_console(s)
-            return True
+    def get_money_measure(self):
+        return MONEY_MEASURE
 
-class StatPageParser(object):
+    def get_traf_measure(self):
+        return TRAF_MEASURE
+
+class PageParser(object):
+    @classmethod
+    def get_table_dict(cls, html):
+        STRIP_CHARS = ": \r\n"
+        TAGS_RE = re.compile('<[^<]+?>')
+        k = dict()
+        matches = re.findall("<tr[^>]*>[^<]*<td[^>]*>(.*?)</td[^>]*>[^<]*<td[^>]*>(.*?)</td[^>]*>[^<]*</tr>",
+                             html, re.DOTALL)
+        for match in matches:
+            key = match[0]
+            key = re.sub(TAGS_RE, '', key)
+            key = key.strip(STRIP_CHARS)
+            value = match[1]
+            value = re.sub(TAGS_RE, '', value)
+            value = value.strip(STRIP_CHARS)
+            k[key] = value
+        return k
+
+    @classmethod
+    def strip_number_field(cls, s):
+        res = ''
+        for char in s:
+            if char.isdigit() or char in ['-', ',', '.']:
+                res += char
+            else:
+                break
+        res = res.replace(",", ".")
+        return Decimal(res)
+
+
+class AccountPageParser(PageParser):
+    @classmethod
+    def parse_user_info(cls, html):
+        FULL_NAME_KEY = "Абонент"
+        PLAN_KEY = "Тарифный план на услуги"
+        balance = cls.parse_balance(html)
+        if not balance:
+            return
+        table_k = cls.get_table_dict(html)
+        plan = table_k[PLAN_KEY]
+        full_name = table_k[FULL_NAME_KEY]
+        return UserInfo(full_name, plan, balance)
+
+    @classmethod
+    def parse_balance(cls, html):
+        BALANCE_REGEXPR_PATTERN = 'Актуальный баланс: <b>(.*)</b>'
+        m = re.search(BALANCE_REGEXPR_PATTERN, html)
+        if m:
+            s = m.group(1)
+            s = s.strip(" .")
+            s = cls.strip_number_field(s)
+            try:
+                return Decimal(s)
+            except Exception as e:
+                logger.exception(get_exception_str(e))
+                logger.debug('Не определен баланс')
+                return
+
+
+class StatPageParser(PageParser):
     TABLE_RE = '<table[^>]* class="content">.*?</table>'
     ROW_RE = '<tr[^>]*>(.*?)</tr>'
     CELL_RE = '<td[^>]*>(.*?)</td>'
@@ -471,10 +405,26 @@ class StatPageParser(object):
                     hours = int(time_parts[2])
                 duration = datetime.timedelta(hours=hours,
                                               minutes=minutes, seconds=seconds)
-                ingoing = float(raw_ingoing)
-                outgoing = float(raw_outgoing)
-                cost = Decimal(raw_cost)
-                return Session(title, begin, end, duration, ingoing, outgoing, cost)
+            ingoing = float(raw_ingoing)
+            outgoing = float(raw_outgoing)
+            cost = Decimal(raw_cost)
+            return Session(title, begin, end, duration, ingoing, outgoing, cost)
         except Exception as e:
             print(e)
+            return None
+
+    @classmethod
+    def parse_total_stat_info(cls, html):
+        KEY_SUM_COST = "Сумма"
+        KEY_SUM_TRAF = "Суммарный трафик"
+        if not html:
+            return None
+        try:
+            d = cls.get_table_dict(html)
+            cost = d[KEY_SUM_COST]
+            traf = d[KEY_SUM_TRAF]
+            cost = cls.strip_number_field(cost)
+            traf = cls.strip_number_field(traf)
+            return TotalStatInfo(traf, cost)
+        except Exception as e:
             return None
