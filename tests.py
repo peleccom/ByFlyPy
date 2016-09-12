@@ -177,6 +177,19 @@ class TestTotalStatInfoClass(TestCase):
         self.assertEqual(total_stat_info.total_cost, COST)
         self.assertEqual(total_stat_info.total_traf, TRAF)
 
+class TestClaimPaymentClass(TestCase):
+    def test_claim_payment(self):
+        PK = 1
+        DATE = "Jan 1"
+        IS_ACTIVE = True
+        COST = 10.6
+        TYPE_OF_PAYMENTS = 'Обещанный платеж'
+        claim_payment = byflyuser.ClaimPayment(PK, DATE, IS_ACTIVE, COST, TYPE_OF_PAYMENTS)
+        self.assertEqual(claim_payment.cost, COST)
+        self.assertEqual(claim_payment.date, DATE)
+        self.assertEqual(claim_payment.is_active, IS_ACTIVE)
+
+
 class TestByFlyUserClass(TestCase):
     LOGIN = "test"
     PASSWORD = "test"
@@ -225,7 +238,6 @@ class TestByFlyUserClass(TestCase):
             with self.assertRaises(byflyuser.ByflyInvalidResponseException):
                 self._byflyuser.login()
 
-
     def test_number_parser(self):
         self.assertEqual(byflyuser.PageParser.strip_number_field("1.25 руб"), 1.25)
         self.assertEqual(byflyuser.PageParser.strip_number_field("1,25 руб"), 1.25)
@@ -247,6 +259,11 @@ class TestByFlyUserClass(TestCase):
             self.assertTrue(self._byflyuser.get_account_info_page())
             self.assertTrue(ui.print_info())
 
+    def test_get_claim_payment(self):
+        with requests_mock.Mocker() as m:
+            m.post(self._byflyuser.URL_PAYMENTS_PAGE, status_code=404)
+            with self.assertRaises(byflyuser.ByflyInvalidResponseException):
+                self._byflyuser.get_payments_page()
 
 class TestMainProg(TestCase):
     def test_import_plot(self):
@@ -302,8 +319,13 @@ class TestMainProg(TestCase):
             f = codecs.open("testdata/account_page.html", 'r', encoding='utf8')
             account_raw_data = f.read()
             f.close()
+            f = codecs.open("testdata/payments_page.html", 'r', encoding='utf8')
+            payments_raw_data = f.read()
+            f.close()
+
             m.get(byflyuser.ByFlyUser.URL_ACCOUNT_PAGE, text=account_raw_data)
             m.post(byflyuser.ByFlyUser.URL_LOGIN_PAGE, text=byflyuser.START_PAGE_MARKER)
+            m.get(byflyuser.ByFlyUser.URL_PAYMENTS_PAGE, text=payments_raw_data)
             byfly.Program().ui(OptMock())
 
     @classmethod
@@ -345,6 +367,14 @@ class TestStatPageParser(TestCase):
                 ui = byfly.UI(byflyUser)
                 ui.print_additional_info()
 
+class TestPaymentsPageParser(TestCase):
+    def test_parser(self):
+        with codecs.open("testdata/payments_page.html", encoding='utf8') as f:
+            html = f.read()
+            claim_payments = byflyuser.PaymentsPageParser.parse_claim_payments(html)
+            self.assertEqual(len(claim_payments), 3)
+            self.assertTrue(claim_payments[0].is_active)
+            self.assertFalse(claim_payments[1].is_active)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.CRITICAL)

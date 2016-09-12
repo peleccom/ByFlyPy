@@ -1,0 +1,861 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Платежи :: Личный кабинет</title>
+<meta name="description" content="Личный кабинет" />
+<meta name="keywords" content="Личный кабинет" />
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="icon" href="/data/img/beltelecom2.jpg" type="image/x-icon">
+<link type="text/css" rel="stylesheet" media="all" href="data/css/style.css?1121221223" />
+<link type="text/css" rel="stylesheet" media="all" href="data/css/style_w.css?31133221" />
+<link type="text/css" rel="stylesheet" media="all" href="data/css/button.css" />
+<script type="text/javascript" src="data/js/jquery.min.js?H"></script>
+<script type="text/javascript" src="data/js/drupal.js?H"></script>
+<script type="text/javascript" src="data/js/ru_563525a730028b61344076c7e250002e.js?H"></script>
+<script type="text/javascript" src="data/js/jquery.featureList-1.0.0.js?H"></script>
+<script type="text/javascript" src="data/js/easing.js?H"></script>
+<script type="text/javascript" src="data/js/jquery.ui.totop.js?H"></script>
+<script type="text/javascript" src="data/js/script.js?H"></script>
+<script type="text/javascript" src="data/js/jquery.maskedinput-1.2.2.js"></script>
+<link rel="stylesheet" type="text/css" href="/data/css/jquery.jgrowl.css?111">
+<script language="Javascript" src="/data/js/jquery.jgrowl.js?12345"></script>
+<link rel="stylesheet" href="data/js/jstree/jquery.treeview.css" />
+<script src="data/js/jstree/lib/jquery.cookie.js" type="text/javascript"></script>
+<script src="data/js/jstree/jquery.treeview.js" type="text/javascript"></script>
+<script type="text/javascript" src="data/js/popup.js?12"></script>
+<script type="text/javascript" src="data/js/jquery.printElement.js?12"></script>
+
+<script type="text/javascript">
+		$(function() {
+		/*$.cookie("treeview","");*/
+			$("#tree").treeview({
+
+				animated: "medium",
+				control:"#treecontrol",
+				collapsed: true,
+				persist: "cookie"
+		
+			});
+		$(".open_all_tree").trigger('click');
+
+
+$('.showhid').click(function() {
+                var shid = $(this).attr('shid');
+                $('#'+shid).slideToggle(200);
+                return false;
+});
+
+
+$('.showhidext').click(function() {
+
+  var shid = $(this).attr('shid');
+				if(!$('#'+shid).is(":hidden"))	
+				$(this).html($(this).attr('pername')+' &rarr;');
+				else $(this).html($(this).attr('pername')+' &darr;');				
+                var shid = $(this).attr('shid');
+                $('#'+shid).slideToggle(200);			
+                return false;
+});
+
+
+		})
+		
+jQuery.fn.extend({
+scrollToMe: function () {
+    var x = jQuery(this).offset().top - 100;
+    jQuery('html,body').animate({scrollTop: x}, 500);
+}});
+</script>
+
+
+
+
+<script type="text/javascript">
+<!--//--><![CDATA[//><!--
+jQuery.extend(Drupal.settings, { "basePath": "/" });
+    	/*$(document).ready(function() { jQuery.featureList( jQuery("#s11-topslider-tabs li a"), jQuery("#s11-topslider-output li"), { start_item: }); });*/
+    	$(document).ready(function() {
+    		/*jQuery('.content tr:even').addClass('zebra');
+    		jQuery('.content tr').hover(function() {
+    			$(this).addClass('zebrahover');
+    			}, function() {
+    		$(this).removeClass('zebrahover');
+    		});
+    		jQuery('.content tr').click(function() {
+    			jQuery(this).toggleClass('zebrahover2');
+    		});*/
+    	});
+      $(document).ready(function() {
+      	$("#s11_open").click(function(){
+      		$("div#s11_panel").slideDown("slow");
+      	});
+      	$("#s11_close").click(function(){
+      		$("div#s11_panel").slideUp("slow");
+      	});
+      	$("#s11_toggle a").click(function () {
+      		$("#s11_toggle a").toggle();
+      	});
+      		/* TO TOP */
+      		$(document).ready(function() {
+      			var defaults = {
+      	  			containerID: 'moccaUItoTop', // fading element id
+      				containerHoverClass: 'moccaUIhover', // fading element hover class
+      				scrollSpeed: 1200,
+      				easingType: 'linear'
+      	 		};
+      			$().UItoTop({ easingType: 'easeOutQuart' });
+      		});
+      });
+var opera = (navigator.userAgent.indexOf('Opera') >= 0)? true : false;
+var dom = (document.getElementById && !opera)? true : false;
+var ie4 = (document.all && !dom && !opera)? true : false;
+function chacc(f) {
+	if(opera) {
+    	    currElement = document.all['fio'+iter];
+	}
+	if (dom || ie4) {
+    	    currElement = (dom)? document.getElementById('fio'+iter) : document.all['fio'+iter];
+	}
+}
+//--><!]]>
+</script>
+  </head>
+
+<body>
+	<div id="popupContact"></div>
+
+
+	<div class="add_serv_div">
+		<a id="popupContactClose" href="#" onclick="return 	disablePopup();">x</a>
+		<h1 class="htitle">Добавление услуги</h1>
+		
+
+		<div class="contactArea">
+	    <form name="Add_Serv_form" id="Add_Serv_form" action="" onsubmit="return add_servicew();" method="POST">		
+		<input type="hidden" value="add_service" name="live">
+		<input type="hidden" value="app" name="app" class="japp">
+		<input type="hidden" value="rz" name="rz" class="jrz">
+		<input type="hidden" value="serv" name="serv" class="jserv">
+		<input type="hidden" value="serv" name="servz" class="jservz">
+		<input type="hidden" value="paramn" name="paramn" class="jparamn">
+		<input type="hidden" value="0" name="dparam1" class="dparam1">
+		<div class="add_serv_const"></div>
+		<div class="param_add_servicep1">
+		<span class="add_param_name1">Параметр:</span>	
+			<select id="pparamg1" name="pparamg1">
+			<option value="">Все</option>
+			</select>
+		</div>
+		<div class="param_add_service">
+		<span class="add_param_name">Пароль:<!--param--></span>
+		<input type="text" value="" class="add_param_value" name="add_param_value">
+		<div class="both_c"></div>
+		</div>
+		
+		<input type="hidden" class="add_serv_prim_txt" name="add_serv_prim_txt" value="">
+		<div class="control_add_service"><div class="price_add_serv" style="color:rgba(252, 127, 127, 0.92);"></div>
+<div class="agr_ja_p"><label for="agr_ja"><input name="agr_ja" id="agr_ja" value="1" type="checkbox">Я согласен с условиями Договора</label><br></div>
+<div class="panel_aferta">
+<input type="submit" disabled value="Добавить" class="but_add_serv">&nbsp;<input type="button" value="Печать" class="onButPrint">&nbsp;<input type="button" value="Закрыть"  onclick="return 	disablePopup();">
+</div>
+</div>
+	</form>	
+		</div>
+		<script>
+$(".onButPrint").click(function() {
+$('.add_serv_const').printElement();
+});
+
+
+$("#agr_ja").click(function(fer) {
+if($(this).attr('checked')==true){
+$('.but_add_serv').removeAttr('disabled');
+}
+else{
+$('.but_add_serv').attr('disabled','disabled');
+
+}
+});
+		</script>
+</div>
+	
+
+
+
+<div class="aferta_div">
+<a id="popupContactClose" href="#" onclick="return 	disablePopup();">x</a>
+<h1 class="htitle titleaf">Оферта №</h1>
+<div class="contactArea">
+<form name="Add_Serv_form" id="Add_Serv_form" action="" onsubmit="return add_service();" method="POST">		
+<div class="afert_serv_const"></div>
+
+<div class="control_add_service">
+<div class="dater_af" style="color:rgba(187, 180, 180, 0.92);"></div>
+<div class="panel_aferta">
+<input type="button" value="Печать" class="onButPrintAf">&nbsp;<input type="button" value="Закрыть"  onclick="return 	disablePopup();">
+</div>
+</div>
+</form>	
+</div>
+<script>
+$(".onButPrintAf").click(function() {
+$('.afert_serv_const').printElement();
+});
+</script>
+</div>
+
+
+
+
+
+
+
+
+
+<div class="myconfitm_div">
+		<a id="popupContactClose" href="#" onclick="return 	disablePopup();">x</a>
+		<h1 class="htitle">Подтверждение</h1>
+		<div class="contactArea">
+		<span class="add_param_name"></span>
+		<div class="textContactArea"></div><br>
+		<form  action="" onsubmit="return myconfirm_service();" method="POST">			
+		<div class="control_add_service"><span id="zmyconfirm"><input type="button" onclick="" value="Продолжить"></span>&nbsp;<input type="button" value="Закрыть" onclick="return 	disablePopup();"></div>
+		</form>	
+		</div>		
+</div>
+	
+
+
+	
+	
+<div class="helper_sw" style="display:none">
+<a id="popupContactClose" href="#" onclick="return 	disablePopup();">x</a>
+		<h1 class="htitle">Помощь</h1>
+		<div class="contactArea">
+			<div class="textContactArea"><p style="text-align: justify;">Обращаем Ваше внимание, что в течение календарных суток, допускается возможность совершить <strong><span style="color: #ff0000;">не более 3-х ошибок</span></strong>. Если Вы не уверены в значении пин кода, либо пин код в процессе стирания защитного слоя был поврежден, необходимо обратиться по телефону <strong>306-48-88</strong>. Претензии по карте принимаются только при предъявлении её владельцем. <br /><br /><br /><br /><br /><br /><br /><br /><br /></p><br></div>
+		<div class="control_ed_service"><input type="button" value="Закрыть" onclick="return 	disablePopup();"></div>
+		</div>
+
+</div>
+
+	<div class="ed_serv_div">
+		<a id="popupContactClose" href="#" onclick="return 	disablePopup();">x</a>
+		<h1 class="htitle">Редактирование услуги</h1>
+		
+
+		<div class="contactArea">
+	    <form name="ed_servicer" id="ed_servicer" action="" onsubmit="return ed_servicerw();" method="POST">		
+		<input type="hidden" value="ed_service" class="ed_live" name="live">
+		<input type="hidden" value="1" name="ed_service">
+		<input type="hidden" value="rz" name="rz" class="erz">
+		<input type="hidden" value="app" name="app" class="eapp">
+		<input type="hidden" value="serv" name="serv" class="eserv">
+		<input type="hidden" value="paramn" name="paramn" class="eparamn">
+		<input type="hidden" value="srv_code" name="srv_code" class="esrv_code">
+		<div class="ed_serv_const"></div>
+		<div class="param_ed_service">
+		<span class="ed_param_name">Пароль:<!--param--></span>
+		<div class="ed_param_value_zz"><input type="text" value="" class="ed_param_value" name="ed_param_value"></div>
+		<div class="both_c"></div>
+		</div>
+		
+		<div class="control_ed_service"><input type="submit"  value="Сохранить">&nbsp;<input type="button" value="Закрыть" onclick="return 	disablePopup();"></div>
+	    </form>	
+		</div>
+		
+	</div>
+	
+	
+	
+	
+	
+<style>
+#fuzz{ position:absolute; top:0; left:0; width:100%; z-index:100; background: url('data/img/fuzz.gif'); display:none; text-align:left; opacity:0.6;  }
+.msgbox img { position:absolute;z-index:200; top: 50%; left: 50%; margin-top: -100px; margin-left: -150px;  opacity:0.5;}
+</style>
+<div id="fuzz"></div>
+<script>
+$(document).ready(function(){
+$("#fuzz").css("height", ($(window).height()+7000)+'px');
+//$("#fuzz").css("height",(7000+$(document).height())+'px');
+$(window).bind("resize", function(){
+$("#fuzz").css("height", ($(window).height()+7000)+'px');
+//$("#fuzz").css("height",(7000+$(document).height())+'px');
+//$("#fuzz").css("height", ($(window).height()+7000));
+});
+}); 
+</script>
+
+  <div id="load">Пожалуйста, подождите,<br>идёт загрузка...<br><br><img src="/data/img/ajax-loader .gif"/></div>
+<div id="s11-wrapper">
+    <div id="s11-headerpanel">
+	    <div id="s11-headerpnel-top">
+		<a href="http://beltelecom.by" title="Главная" rel="home" target="_blank">
+                <img src="data/img/logo_ru.png" alt="Главная" />
+                </a>
+<div id="s11-topslider">
+
+<ul id="s11-topslider-tabs">
+  <li><a href="/info.html" ><span class="header-slider">Сообщения провайдера</span><span class="desc-slider"><p>Добро пожаловать в Ваш Кабинет</p></span></a></li>
+  <li><a href="/choice.html" ><span class="header-slider">Выбор приложения</span><span class="desc-slider">Выбор логина для управления</span></a></li>
+  <li><a href="/profil.html" ><span class="header-slider">Настройки</span><span class="desc-slider">Изменение профиля абонента</span></a></li>
+</ul>
+
+<div id="s11-topslider-output">
+  <li>
+  <a style="z-index:10" href="/logout">Выход</a>
+<div id="s11-topslider-output3" style="width:490px;z-index:1 !important">
+
+
+<span style="font-size:16px;">Договор &#8470; 1111111111</span><br>
+
+<span style="font-size:14px;">Номер Приложения &#8470; 1111111111111
+<!--
+
+-->
+</span><br>
+<span style="font-size:16px;">Логин &#8470; 111111111111</span>
+
+<br>
+
+<p style="padding-top:10px;">ФИО / Компания: ИВАНОВ ИВАН ИВАНОВИЧ</p>
+<p>Категория клиента: Физические лица</p>
+<p>Контакты:  375  80331111111 </p>
+<p>Адрес: Республика Беларусь</p>
+<!--
+<p>Физический адрес: </p>
+-->
+
+</div>
+  </li>
+  <li>
+  <a href="javascript:void(0)" onclick="if(confirm('Вы уверены, что хотите покинуть личный nкабинет?')) { document.location.href='/?logout'; }">Выход</a>
+<div id="s11-topslider-output3">
+</div>
+  </li>
+  <li>
+  <a href="javascript:void(0)" onclick="if(confirm('Вы уверены, что хотите покинуть личный nкабинет?')) { document.location.href='/?logout'; }">Выход</a>
+
+
+  </li>
+</div>
+
+<div id="s11-topslider-output4">
+<p></p>
+</div>
+
+</div>
+        </div>
+		<div id="s11-headerpnel-bottom">
+		
+<!--
+<div class="language-list">
+<ul><li class="be first"><a href="#" class="language-link">Бел</a></li>
+<li class="ru active"><a href="#" class="language-link active">Рус</a></li>
+<li class="en last"><a href="#" class="language-link">Eng</a></li>
+</ul>
+</div>
+-->
+
+		<div id="search-block">
+    <form action="http://beltelecom.by/"  accept-charset="UTF-8" method="post" id="search-block-form" target="_blank">
+<input type="text" maxlength="128" name="search_block_form" id="edit-search-block-form-1" size="15" value="Найти" onblur="if (this.value == &#039;&#039;) {this.value = &#039;Найти&#039;;}" onfocus="if($(this).val() == &#039;Найти&#039;) { $(this).val(&#039;&#039;)}" class="form-text" /><input type="submit" name="op" id="edit-button" value=""  class="form-submit" />
+<input type="hidden" name="form_build_id" id="form-4a63af1bb3aa644e576af8ee5645bf29" value="form-4a63af1bb3aa644e576af8ee5645bf29"  />
+<input type="hidden" name="form_id" id="edit-search-block-form" value="search_block_form"  />
+
+</form>
+          <div id="sitemap-link" style="padding: 0px 0px 0px 10px">
+        <a href="http://beltelecom.by/sitemap" title="Карта сайта" target="_blank" style="font-size:11px !important; color:#788189 !important;">Карта сайта</a>
+		 </div>
+		</div>        	
+	<div class="topmenu">
+	
+    <ul class="menu">
+
+<li class="leaf first menu-mlid-1535 has-children "><a href="/main.html" onclick="showwt();">&nbsp;Состояние счета&nbsp;</a></li>
+
+
+<li class="leaf menu-mlid-1538 has-children "><a href="/servact.html" onclick="showwt();">&nbsp;Тарифы и услуги&nbsp;</a></li>
+
+
+<li class="leaf menu-mlid-1541 has-children active active-trail"><a href="/payact.html" onclick="showwt();">&nbsp;Платежи&nbsp;</a></li>
+
+
+<li class="leaf menu-mlid-1544 has-children "><a href="/statact.html" onclick="showwt();">&nbsp;Статистика</a></li>
+
+
+<li class="last menu-mlid-1547 has-children "><a href="/prilag_add.html" onclick="showwt();">&nbsp;Заказ новых услуг</a></li>
+
+</ul>
+	</div>        
+		</div>
+		
+		<div class="breadcrumb"><a href="/">Главная</a> &rarr; <!--<a href="/"></a> &rarr;--> Платежи</div></div>
+		<div id="s11-middle">
+		<div id="s11-container">
+		<div id="s11-contentpanel">
+		
+		<!--
+		show subscriber info message for all users
+		-->
+		
+
+		<!--
+		show subscriber info message for user category
+		-->
+		
+
+        <!--
+        show subscriber info message for user category
+        -->
+        
+		
+		<center><h1>Платежи</h1></center>
+		<div id="node-261" class="node node-type-page build-mode-full" >
+      <div class="content">
+<script type="text/javascript">
+$(".flj").click(function() {
+	$(this).prev().trigger('click');;
+});
+</script>
+
+
+
+
+
+<p><p><span style="font-size: medium;">Здесь вы можете ознакомиться с информацией о последних зачисленных платежах. <span style="white-space: pre;">Так же данный р</span>аздел позволит вам осуществить различные финансовые операции.</span></p></p>
+<div style='background:#fafafa; border: dotted 1px #555; padding:30px'>
+
+
+<center>
+<h1>Регистрация обещанного платежа</h1>
+
+</center>
+<p style="text-align: justify;">Период действия обещанного платежа равен <strong><span style="color: #ff0000;">3 суткам</span></strong>. Обращаем ваше внимание, что в случае не подтверждения обещанного платежа реальным платежом, по истечении указанного периода, обещанный платеж будет снят с вашего лицевого счета и недоступен для повторного использования. <span style="color: #0000ff;">Для полного погашения обещанного платежа, сумма реального платежа должна быть равна или больше обещанного платежа</span>.</p><p style="text-align: justify;">&nbsp;</p>
+<center>
+<form name="claimpay" id="claimpay" action="" onsubmit="return set_obshen(this)" method="POST">
+<input type="hidden" value="5415664" name="get_login">
+<input type="hidden" value="claimpay" name="live">
+<table border="0" align="center" class="claimpay" cellspacing="2" cellpadding="2">
+<tr height="20">
+<td width="200" style="vertical-align:middle" align="right"><b>Введите cумму платежа:<b></td>
+<td style="vertical-align:middle"><input type="text" id="formm" name="clpay" value="" style="width:70px;display:inline"> * максимальная сумма — 5.50 руб.
+</td>
+<td width="50" align="center">
+<input type="submit" onclick="" value=" Применить ">
+</td></tr>
+</table>
+</form><br><br>
+<script>
+function set_obshen(formm){
+
+if(formm.clpay.value==''){
+alert('Укажите сумму платежа!');
+formm.clpay.focus();
+return false;
+}
+
+if(formm.clpay.value>5.5){
+alert('Укажите корректную сумму платежа!');
+formm.clpay.focus();
+return false;
+}
+if(formm.clpay.value<0.01){
+alert('Укажите корректную сумму платежа!');
+formm.clpay.focus();
+return false;
+}
+
+
+showwt();
+return true;
+
+}
+
+</script>
+
+
+
+
+<center>
+<h1>Активация карты экспресс оплаты</h1>
+</center>
+<p style="text-align: justify;">Введите номер карты экспресс-оплаты в поля расположенные ниже&nbsp;(PIN1 - код активации, PIN2 - пин код). Если вы являетесь обладателем карты с пин кодом из 16 цифр, введите 8-м цифр в поле PIN1, 8-м остальных цифр в поле PIN2.<span style="color: #ff0000;"> Будьте внимательны! В течение календарных суток разрешается совершить не более 3-х ошибок.</span></p><p style="text-align: justify;"><strong><br /></strong></p>
+<center>
+
+<form name="formexpay" id="formexpay"  action="" onsubmit="return checkpin()"  method="POST">
+<input type="hidden" value="5415664" name="get_login">
+<input type="hidden" value="formexpay" name="live">
+<input type="hidden" value="expay" name="expay" id="expay">
+<table border="0" align="center" class="formexpay" cellspacing="2" cellpadding="2">
+<tr height="20">
+<td width="95" style="vertical-align:middle" align="right"><b>Введите:<b></td>
+<td width="110" align="center">
+<span>PIN1-</span><input type="text" id="expay1" name="expay1" maxlength=8 value="" style="width:66px;display:inline;">
+<span>PIN2-</span><input type="text" id="expay2" name="expay2" maxlength=8 value="" style="width:66px;display:inline;">
+<script>
+
+if (!('ontouchstart' in document.documentElement)) {
+    $("#expay1").mask("99999999");
+    $("#expay2").mask("99999999");
+}
+
+function PinValidator(pincode){
+    return (/^[0-9]{8,8}$/i).test(pincode);
+}
+
+function checkpin(){
+pin1 = $("#expay1").val();
+pin2 = $("#expay2").val();
+
+if( pin1.length != 8 || pin2.length != 8 ){
+        alert('Пожалуйста, укажите PIN-код полностью')
+        return false;
+    } else if( !PinValidator( pin1 ) || !PinValidator( pin2 ) ) {
+        alert('Пинкод должен содержать только цифры')
+        return false;
+    }
+    else return true;
+}
+
+</script>
+</td>
+<td width="50" align="center" valign="middle">
+<img src="/data/img/liber/help.png" style="width:16px;cursor:pointer;display:inline" onclick="get_help()" title="Как поплнить счет с помощью КЭО" alt="Как поплнить счет с помощью КЭО">
+<input type="submit" style="display:inline" value=" Применить ">
+<script>
+function get_help(){
+//$(".textContactArea").html('');
+getWindow($(".helper_sw").html(),700,350,25,25);
+}
+</script>
+</td></tr>
+</table>
+</form>
+
+
+
+
+
+
+<br>
+<center><h1>Платежи</h1></center>
+
+<form action="" name="pays" id="pays" method="post">
+<input type="hidden" value="5415664" name="get_login">
+<table width="600" border="0" cellspacing="2" cellpadding="2" align="center" class="content">
+<tr height="20" align="center" style="background-color: #eeeeee; font-weight: bold;">
+<td colspan=4 class="border">Зачисленные платежи за последние 90 дней на Лицевой счет &#8470; 1111111<!--<br><a href='/?act=pays&period=all'>Отобразить за все время &rarr;</a>-->
+</td></tr>
+<tr height="20" align="center" style="background-color: #eeeeee; font-weight: bold;">
+<!--<td class="border">&#8470; сч.</td>-->
+<td class="border">Дата</td>
+<td class="border">Сумма</td>
+<td class="border">Вид платежа</td>
+</tr>
+
+<tr align="center">
+<!--<td class="border">284539460</td>-->
+<td class="border">07.09.2016 21:19:57</td>
+<td class="border">2.00</td>
+<td class="border">Банк (бел.руб.)</td>
+</tr>
+
+<tr align="center">
+<!--<td class="border">281142011</td>-->
+<td class="border">20.08.2016 09:26:29</td>
+<td class="border">4.50</td>
+<td class="border">Банк (бел.руб.)</td>
+</tr>
+
+<tr align="center">
+<!--<td class="border">271573915</td>-->
+<td class="border">11.07.2016 21:04:19</td>
+<td class="border">13.00</td>
+<td class="border">Банк (бел.руб.)</td>
+</tr>
+
+<tr align="center">
+<!--<td class="border">261547645</td>-->
+<td class="border">12.06.2016 23:34:21</td>
+<td class="border">130 000.00</td>
+<td class="border">Банк (бел.руб.)</td>
+</tr>
+
+
+</table><br>
+</form>
+
+
+
+
+<form action="" name="pays" id="pays" method="post">
+<input type="hidden" value="5415664" name="get_login">
+<table width="600" border="0" cellspacing="2" cellpadding="2" align="center" class="content">
+<tr height="20" align="center" style="background-color: #eeeeee; font-weight: bold;">
+<td colspan=5 class="border">Зачисленные обещанные платежи за последние 90 дней на Лицевой счет &#8470; 1111111<!--<br><a href='/?act=pays&period=all'>Отобразить за все время &rarr;</a>-->
+</td></tr>
+<tr height="20" align="center" style="background-color: #eeeeee; font-weight: bold;">
+<td class="border">&#8470;</td>
+<td class="border">Дата</td>
+<td class="border">Сумма</td>
+<td class="border">Статус</td>
+<td class="border">Вид платежа</td>
+</tr>
+
+<tr align="center">
+<td class="border">52023112</td>
+<td class="border">06.09.2016 11:05:26</td>
+<td class="border">5.00</td>
+<td class="border">Активен</td>
+<td class="border">Обещанный платеж</td>
+</tr>
+
+<tr align="center">
+<td class="border">49920620</td>
+<td class="border">11.07.2016 08:45:28</td>
+<td class="border">3.01</td>
+<td class="border">Погашен</td>
+<td class="border">Обещанный платеж</td>
+</tr>
+
+<tr align="center">
+<td class="border">49013180</td>
+<td class="border">12.06.2016 23:25:12</td>
+<td class="border">35 000.00</td>
+<td class="border">Погашен</td>
+<td class="border">Обещанный платеж</td>
+</tr>
+
+
+</table><br>
+</form>
+
+
+
+
+</div>  </div>
+</div>
+			</div>
+		</div>
+
+<style>
+.menu-group div {
+    display: none;
+}
+.selected-menu-group div {
+    display: block;
+}
+.menu-group li {
+    padding-left: 25px;
+}
+.menu-group .icon {
+   float:left;
+   margin-left:-25px;
+   min-width:16px;
+   padding-right:9px;
+}
+</style>
+<div id="s11-leftpanel">
+		<h1 class="zag_1"> Ваши Услуги</h1>
+<div class="leftmenu">
+
+<ul class="menu">
+
+
+    <li class="menu-group selected-menu-group"><a href="#" class="showhid" shid="sel_pril_1">Интернет byfly</a>
+        <div id="sel_pril_1">
+            <ul>
+                <li>
+                    <span class="icon"><img style="width:16px;float:left;" src="/data/img/liber/byfly_small.png"></span><a href="#" style="text-decoration: none;"  onclick="return SendPost('?pril_sel=1111111111111&live=ffflogin_111111&chpril=1111111')" class="cur_l jk11111111"><strong>1111111111111&nbsp;(Домосед Старт)</strong></a>
+                    
+                </li>
+            </ul>
+        </div>
+    </li>
+
+
+</ul>
+
+</div>
+<h1 class="zag_1">Услуги, доступные для заказа</h1>
+<div class="leftmenu">
+    <ul>
+    
+        <li class="menu-group"><a href="#" class="showhid" shid="sel_pril_add_2">SMART ZALA™</a>
+            <div id="sel_pril_add_2">
+                <ul>
+                    <li>
+                        <span class="icon"></span><a href='/prilag_add.html#app2' style='text-decoration: none;font-weight: bold' id="add_2_link" class="hashchanger">SMART ZALA™ (добавить)</a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+    
+        <li class="menu-group"><a href="#" class="showhid" shid="sel_pril_add_3">Виртуальный телефонный номер</a>
+            <div id="sel_pril_add_3">
+                <ul>
+                    <li>
+                        <span class="icon"></span><a href='/prilag_add.html#app3' style='text-decoration: none;font-weight: bold' id="add_3_link" class="hashchanger">Виртуальный телефонный номер (добавить)</a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+    
+        <li class="menu-group"><a href="#" class="showhid" shid="sel_pril_add_5">Wifi</a>
+            <div id="sel_pril_add_5">
+                <ul>
+                    <li>
+                        <span class="icon"></span><a href='/prilag_add.html#app5' style='text-decoration: none;font-weight: bold' id="add_5_link" class="hashchanger">Wifi (добавить)</a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+    
+    </ul>
+
+</div>
+
+<div id="s11-leftpanel" style="margin-top:200px;">
+<div class="reclama">
+
+		
+
+	</div>
+</div>
+
+
+
+<style>
+.banner-slider { margin-righ: -20px; padding: 40px 0 60px; width: 330px; position: relative; }
+.banner-stage { width: 310px; overflow: hidden; }
+.banner-wrapper { transition: transform .6s; }
+.banner-slide { float: left; width: 310px; margin-right: 20px; color: #111; }
+.banner-slide p { margin: 12px 0; font-size: 12px; line-height: 18px; }
+.banner-slide strong { font-size: 13px; line-height: 13px; text-shadow: rgba(26,130,203,.3) 0 0 .5px; }
+.banner-slide a { color: #014397 !important; }
+.banner-slide a:hover { animation: pulse 1s infinite; }
+.slider-arrow { position: absolute; height: 100px; width: 20px; top: 50%; margin-top: -50px; cursor: pointer; display: none; }
+.slider-arrow-left { left: -10px; background: url(data:image/gif;base64,R0lGODlhFAAoALMPALTN5cvd7GCYyPT4+4201wBosHip0eXu9gBPouzy+ABBmwBJnwBZp52/3QBDnP///yH5BAEAAA8ALAAAAAAUACgAAASD8MlJq704650H4VazgBRQOKREOIqSmq3LeUwsbwASM582NKeYgdNwsBQMwwFXiDmGPgLiuBAsNYBai7f5NWOCwUa0IySYNmgmQVjsrJuAttUADdxgUkCXB+1tAnp8LYF+gwqFHH99ioeJcY6CgJKMkJOGNimLN5icmCkTe6Cho6WmGREAOw==) center no-repeat; }
+.slider-arrow-right { right: -20px; background: url(data:image/gif;base64,R0lGODlhFAAoALMPAPD0+VSRxa3I4nCizo+22Jm72wBcqQBJngBBm4Wx1QBlrgBSpH+s0wBCnL7U6P///yH5BAEAAA8ALAAAAAAUACgAAASL8MlJq704azw2Rp1XIaBIkaX5oKl4sKHnvGi8zbCJ1zpN2prdr5cTCVs3HzKoBGaOTgyAhSB4AAJqwFNANQwEwEagYCU2gESjQVoMxBqBAbUooBPzGjxToH0LexdYCmwkDB4ELAYMgRdkKAdWGwkLkG8elSQGdiIsjCaaYSokZyoPbo1cphOpq64qEQA7) center no-repeat; }
+@keyframes pulse { 50% { text-shadow: rgba(26,130,203,.5) 0 0 1px; }}
+</style>
+<div class="banner-slider js-banner-slider">
+  <div class="banner-stage">
+    <div class="banner-wrapper js-index-slider-wrapper">
+
+      <div class="banner-slide">
+        <h3></h3>
+      </div>
+
+    </div>
+  </div>
+  <div class="slider-arrow slider-arrow-left js-slider-arrow" data-direction="left" role="button"></div>
+  <div class="slider-arrow slider-arrow-right js-slider-arrow" data-direction="right" role="button"></div>
+</div>
+<script>
+/*! modernizr 3.3.1 (Custom Build) | MIT *
+ * https://modernizr.com/download/?-csstransforms-csstransforms3d-csstransitions-setclasses !*/
+!function(e,n,t){function r(e,n){return typeof e===n}function s(){var e,n,t,s,o,i,a;for(var f in C)if(C.hasOwnProperty(f)){if(e=[],n=C[f],n.name&&(e.push(n.name.toLowerCase()),n.options&&n.options.aliases&&n.options.aliases.length))for(t=0;t<n.options.aliases.length;t++)e.push(n.options.aliases[t].toLowerCase());for(s=r(n.fn,"function")?n.fn():n.fn,o=0;o<e.length;o++)i=e[o],a=i.split("."),1===a.length?Modernizr[a[0]]=s:(!Modernizr[a[0]]||Modernizr[a[0]]instanceof Boolean||(Modernizr[a[0]]=new Boolean(Modernizr[a[0]])),Modernizr[a[0]][a[1]]=s),y.push((s?"":"no-")+a.join("-"))}}function o(e){var n=S.className,t=Modernizr._config.classPrefix||"";if(x&&(n=n.baseVal),Modernizr._config.enableJSClass){var r=new RegExp("(^|\\s)"+t+"no-js(\\s|$)");n=n.replace(r,"$1"+t+"js$2")}Modernizr._config.enableClasses&&(n+=" "+t+e.join(" "+t),x?S.className.baseVal=n:S.className=n)}function i(){return"function"!=typeof n.createElement?n.createElement(arguments[0]):x?n.createElementNS.call(n,"http://www.w3.org/2000/svg",arguments[0]):n.createElement.apply(n,arguments)}function a(){var e=n.body;return e||(e=i(x?"svg":"body"),e.fake=!0),e}function f(e,t,r,s){var o,f,l,u,d="modernizr",p=i("div"),c=a();if(parseInt(r,10))for(;r--;)l=i("div"),l.id=s?s[r]:d+(r+1),p.appendChild(l);return o=i("style"),o.type="text/css",o.id="s"+d,(c.fake?c:p).appendChild(o),c.appendChild(p),o.styleSheet?o.styleSheet.cssText=e:o.appendChild(n.createTextNode(e)),p.id=d,c.fake&&(c.style.background="",c.style.overflow="hidden",u=S.style.overflow,S.style.overflow="hidden",S.appendChild(c)),f=t(p,e),c.fake?(c.parentNode.removeChild(c),S.style.overflow=u,S.offsetHeight):p.parentNode.removeChild(p),!!f}function l(e,n){return!!~(""+e).indexOf(n)}function u(e){return e.replace(/([a-z])-([a-z])/g,function(e,n,t){return n+t.toUpperCase()}).replace(/^-/,"")}function d(e,n){return function(){return e.apply(n,arguments)}}function p(e,n,t){var s;for(var o in e)if(e[o]in n)return t===!1?e[o]:(s=n[e[o]],r(s,"function")?d(s,t||n):s);return!1}function c(e){return e.replace(/([A-Z])/g,function(e,n){return"-"+n.toLowerCase()}).replace(/^ms-/,"-ms-")}function m(n,r){var s=n.length;if("CSS"in e&&"supports"in e.CSS){for(;s--;)if(e.CSS.supports(c(n[s]),r))return!0;return!1}if("CSSSupportsRule"in e){for(var o=[];s--;)o.push("("+c(n[s])+":"+r+")");return o=o.join(" or "),f("@supports ("+o+") { #modernizr { position: absolute; } }",function(e){return"absolute"==getComputedStyle(e,null).position})}return t}function h(e,n,s,o){function a(){d&&(delete k.style,delete k.modElem)}if(o=r(o,"undefined")?!1:o,!r(s,"undefined")){var f=m(e,s);if(!r(f,"undefined"))return f}for(var d,p,c,h,v,g=["modernizr","tspan","samp"];!k.style&&g.length;)d=!0,k.modElem=i(g.shift()),k.style=k.modElem.style;for(c=e.length,p=0;c>p;p++)if(h=e[p],v=k.style[h],l(h,"-")&&(h=u(h)),k.style[h]!==t){if(o||r(s,"undefined"))return a(),"pfx"==n?h:!0;try{k.style[h]=s}catch(y){}if(k.style[h]!=v)return a(),"pfx"==n?h:!0}return a(),!1}function v(e,n,t,s,o){var i=e.charAt(0).toUpperCase()+e.slice(1),a=(e+" "+T.join(i+" ")+i).split(" ");return r(n,"string")||r(n,"undefined")?h(a,n,s,o):(a=(e+" "+E.join(i+" ")+i).split(" "),p(a,n,t))}function g(e,n,r){return v(e,t,t,n,r)}var y=[],C=[],w={_version:"3.3.1",_config:{classPrefix:"",enableClasses:!0,enableJSClass:!0,usePrefixes:!0},_q:[],on:function(e,n){var t=this;setTimeout(function(){n(t[e])},0)},addTest:function(e,n,t){C.push({name:e,fn:n,options:t})},addAsyncTest:function(e){C.push({name:null,fn:e})}},Modernizr=function(){};Modernizr.prototype=w,Modernizr=new Modernizr;var S=n.documentElement,x="svg"===S.nodeName.toLowerCase(),_="CSS"in e&&"supports"in e.CSS,b="supportsCSS"in e;Modernizr.addTest("supports",_||b);var P=w.testStyles=f,z="Moz O ms Webkit",T=w._config.usePrefixes?z.split(" "):[];w._cssomPrefixes=T;var E=w._config.usePrefixes?z.toLowerCase().split(" "):[];w._domPrefixes=E;var N={elem:i("modernizr")};Modernizr._q.push(function(){delete N.elem});var k={style:N.elem.style};Modernizr._q.unshift(function(){delete k.style}),w.testAllProps=v,w.testAllProps=g,Modernizr.addTest("csstransforms3d",function(){var e=!!g("perspective","1px",!0),n=Modernizr._config.usePrefixes;if(e&&(!n||"webkitPerspective"in S.style)){var t,r="#modernizr{width:0;height:0}";Modernizr.supports?t="@supports (perspective: 1px)":(t="@media (transform-3d)",n&&(t+=",(-webkit-transform-3d)")),t+="{#modernizr{width:7px;height:18px;margin:0;padding:0;border:0}}",P(r+t,function(n){e=7===n.offsetWidth&&18===n.offsetHeight})}return e}),Modernizr.addTest("csstransitions",g("transition","all",!0)),Modernizr.addTest("csstransforms",function(){return-1===navigator.userAgent.indexOf("Android 2.")&&g("transform","scale(1)",!0)}),s(),o(y),delete w.addTest,delete w.addAsyncTest;for(var A=0;A<Modernizr._q.length;A++)Modernizr._q[A]();e.Modernizr=Modernizr}(window,document);
+$.fn.shift = function(offset, duration, isVertical) {
+    if (Modernizr.csstransforms && Modernizr.csstransitions) {
+        if (Modernizr.csstransforms3d) {
+            $(this).css({transform: isVertical ? 'translate3d(0,'+offset+'px, 0)' : 'translate3d('+offset+'px, 0, 0)'});
+        }
+        else {
+            $(this).css({transform: isVertical ? 'translateY('+offset+'px)' : 'translateX('+offset+'px)'});
+        }
+    } else {
+        var finalCSS = isVertical ? {marginTop: offset+'px'} : {marginLeft: offset+'px'};
+        if (duration > 0) $(this).stop().animate(finalCSS, {duration: duration});
+        else $(this).css(finalCSS);
+    }
+}
+function BannerSlider() {
+
+    var elements = {
+            root: $('.js-banner-slider'),
+            slider: $('.js-index-slider-wrapper'),
+            arrow: $('.js-slider-arrow')
+        },
+        options = {};
+
+    var init = function() {
+            if (elements.slider.length) {
+                create();
+                bind();
+            }
+        },
+
+        create = function() {
+            options.currentSlide = 0;
+            options.slidesCount = elements.slider.children().length;
+            if (options.slidesCount > 1) elements.arrow.show();
+            elements.slider.css('width', elements.root.width() * options.slidesCount + 'px');
+        },
+
+        bind = function() {
+            elements.arrow.click(cycleSlides);
+        },
+
+        cycleSlides = function() {
+            $(this).data('direction') == 'left' ? options.currentSlide-- : options.currentSlide++;
+            options.currentSlide = (options.currentSlide + options.slidesCount) % options.slidesCount;
+            var pixelLeft = - options.currentSlide * elements.root.width();
+            elements.slider.shift(pixelLeft, 600);
+
+        };
+
+    init();
+};
+
+$(window).load(function(){new BannerSlider();});
+</script>
+
+
+</div>
+</div>
+<script type="text/javascript">
+
+function  showwt(){
+//$("#fuzz").fadeIn(); 
+//$("#load").show();
+}
+function SendPost(par){
+// $("#fuzz").fadeOut();
+//$("#fuzz").fadeIn(); 
+//$("#load").show();
+
+  //alert("Handler for .click() called.");
+  toPostServ(par);
+  return false;
+ // toPostServ(\'?chpril='.$vval3['APPSN'].'\')
+}
+function updatePage(data) {
+    if (data.length > 100) {
+        console.log('OK');
+        $('#s11-leftpanel').html(data);
+        $('.showhid', '#s11-leftpanel').click(function() {
+            var shid = $(this).attr('shid');
+            $('#'+shid).slideToggle(200);
+            return false;
+        });
+        var updated_types = $('.leftmenu[data-updated]').attr('data-updated');
+        if (updated_types) {
+            updated_types = updated_types.split(',');
+            for (var i=0; i<updated_types.length-1; i++) {
+                $('#appform'+updated_types[i]).html('<p style="padding:10px;text-align: center;font-size:17px;font-weight: bold;">Приложение успешно добавлено.</p>');
+            }
+        }
+        var left_to_update = $('.leftmenu[data-not-updated]').attr('data-not-updated');
+        if (+left_to_update == 0) clearTimeout(updateTimer);
+    }
+    else console.log('AJAX returned: '+data);
+}
+
+
+</script>
+
+</body>
+</html>

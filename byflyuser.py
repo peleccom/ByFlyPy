@@ -130,6 +130,27 @@ class TotalStatInfo(object):
     def total_traf(self):
         return self._total_traf
 
+
+class ClaimPayment(object):
+    def __init__(self, pk, date, is_active, cost, type_of_payment):
+        self._is_active = is_active
+        self._cost = cost
+        self._pk = pk
+        self._date = date
+        self._type_of_payment = type_of_payment
+
+    @property
+    def is_active(self):
+        return self._is_active
+
+    @property
+    def date(self):
+        return self._date
+
+    @property
+    def cost(self):
+        return self._cost
+
 class ByFlyUser(object):
     """Interface to get information
     usage:
@@ -147,11 +168,13 @@ class ByFlyUser(object):
     _Log1 = '1.html'
     _Log2 = '2.html'
     _Log3 = '3.html'
+    _Log4 = '4.html'
     _last_error = ''
     _last_exception = None
     URL_LOGIN_PAGE = 'https://issa.beltelecom.by/main.html'
     URL_ACCOUNT_PAGE = 'https://issa.beltelecom.by/main.html'
     URL_STATISTIC_PAGE = 'https://issa.beltelecom.by/statact.html'
+    URL_PAYMENTS_PAGE = 'https://issa.beltelecom.by/payact.html'
 
     def __init__(self, login, password):
         self._login = login
@@ -271,6 +294,17 @@ class ByFlyUser(object):
         raw_html = self.get_log_raw()
         return StatPageParser.parse_total_stat_info(raw_html)
 
+    def get_payments_page(self):
+        try:
+            r = self.session.get(self.URL_PAYMENTS_PAGE)
+            if r.status_code != 200:
+                raise ByflyInvalidResponseException("Payments page status code is {}".format(r.status_code))
+            html = r.text
+            log_to_file(self._Log4, html)
+        except Exception as e:
+            raise ByflyInvalidResponseException(get_exception_str(e))
+        return PaymentsPageParser.parse_claim_payments(html)
+
     def get_money_measure(self):
         return MONEY_MEASURE
 
@@ -306,6 +340,28 @@ class PageParser(object):
         res = res.replace(",", ".")
         return Decimal(res)
 
+    @classmethod
+    def get_tables(cls, html):
+        TABLE_RE = '<table[^>]*>.*?</table[^>]*>'
+        matches = re.findall(TABLE_RE, html, re.DOTALL)
+        return [cls.get_row(match) for match in matches]
+
+    @classmethod
+    def get_row(cls, table_html):
+        ROW_RE = '<tr[^>]*>.*?</tr[^>]*>'
+        matches = re.findall(ROW_RE, table_html, re.DOTALL)
+        return [cls.get_cell(match) for match in matches]
+
+    @classmethod
+    def get_cell(cls, table_html):
+        CELL_RE = '<td[^>]*>(.*?)</td[^>]*>'
+        matches = re.findall(CELL_RE, table_html, re.DOTALL)
+        return [cls.strip_tags(match) for match in matches]
+
+    @classmethod
+    def strip_tags(cls, html):
+        TAGS_RE = re.compile('<[^<]+?>')
+        return re.sub(TAGS_RE, '', html)
 
 class AccountPageParser(PageParser):
     @classmethod
@@ -428,3 +484,21 @@ class StatPageParser(PageParser):
             return TotalStatInfo(traf, cost)
         except Exception as e:
             return None
+
+class PaymentsPageParser(PageParser):
+    @classmethod
+    def parse_claim_payments(cls, html):
+        claim_payments = []
+        tables = cls.get_tables(html)
+        for table in tables:
+            if len(table) > 0:
+                row = table[0]
+                if len(row) > 0:
+                    cell = row[0]
+                    if cell.startswith('Зачисленные обещанные платежи'):
+                        if len(table) > 2:
+                            for row in table[2:]:
+                                assert len(row), 5
+                                is_active = row[3] == "Активен"
+                                claim_payments.append(ClaimPayment(row[0], row[1], is_active, row[2], row[4]))
+        return claim_payments

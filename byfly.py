@@ -116,6 +116,15 @@ class UI(object):
                info.balance, self._byfly_user.get_money_measure(), traf, duration))
         return True
 
+    def print_claim_payments_status(self):
+        payments = self._byfly_user.get_payments_page()
+        has_active_claim_payments = False
+        for payment in payments:
+            if payment.is_active:
+                has_active_claim_payments = True
+                break
+        if has_active_claim_payments:
+            self.print_to_console("Обещанный платеж от {} на сумму {} {}".format(payment.date, payment.cost, self._byfly_user.get_money_measure()))
 
 class Program(object):
     def ui(self, opt, showgraph=None):
@@ -136,6 +145,7 @@ class Program(object):
             return
         ui.print_info()
         ui.print_additional_info()
+        ui.print_claim_payments_status()
         if opt.graph and HAS_MATPLOT:
             plt = plotinfo.Plotter()
             if opt.imagefilename:
