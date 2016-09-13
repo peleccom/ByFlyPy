@@ -187,13 +187,7 @@ class ByFlyUser(object):
         self._last_exception = exception
 
     def get_last_error(self):
-        if isinstance((self._last_error), int):
-            return M_DICT[self._last_error]
-        else:
-            return "%s" % self._last_error
-
-    def get_last_exception(self):
-        return self._last_exception
+        return "%s" % self._last_error
 
     def check_error_message(self, html):
         '''Parse html and return 'OK' ,error representation string or None'''
@@ -223,17 +217,7 @@ class ByFlyUser(object):
             'oper_user': self._login,
             'passwd': self._password,
         }
-        try:
-            r = self.session.post(self.URL_LOGIN_PAGE, data=data)
-            if r.status_code != 200:
-                s = "Login status code is {}".format(r.status_code)
-                logger.debug(s)
-                raise ByflyInvalidResponseException(s)
-            html = r.text
-            log_to_file(self._Log1, html)
-        except Exception as e:
-            logger.exception(get_exception_str(e))
-            raise ByflyInvalidResponseException(get_exception_str(e))
+        html = self.send_request('post', self.URL_LOGIN_PAGE, logfile=self._Log1, data=data)
         try:
             return self.check_error_message(html) == M_OK
         except ByflyException as e:
@@ -250,25 +234,18 @@ class ByFlyUser(object):
         :rtype: UserInfo,
         """
         try:
-            r = self.session.get(self.URL_ACCOUNT_PAGE)
-            html = r.text
-            log_to_file(self._Log2, html)
+            html = self.send_request('get', self.URL_ACCOUNT_PAGE, logfile=self._Log2)
         except Exception as e:
             self._set_last_error(get_exception_str(e))
             return False
         return AccountPageParser.parse_user_info(html)
 
-    def get_log_raw(self, previous_period=False, fromfile=None, encoding='cp1251'):
+    def get_log_raw(self, previous_period=False, fromfile=None, encoding='utf8'):
         """Return report of using connection as raw csv. period='curent' or 'previous. If """
         if not fromfile:
             try:
                 param = 'this_month' if not previous_period else 'last_month'
-                r = self.session.get(self.URL_STATISTIC_PAGE + '?{}'.format(param))
-                if r.status_code != 200:
-                    logger.debug("Statistic page error %s", r.status_code)
-                    return False
-                raw_html = r.text
-                log_to_file(self._Log3, raw_html)
+                raw_html = self.send_request('get', self.URL_STATISTIC_PAGE + '?{}'.format(param), logfile=self._Log3)
             except Exception as e:
                 self._set_last_error(str(e))
                 return False
@@ -283,11 +260,11 @@ class ByFlyUser(object):
         return raw_html
 
     def get_log(self, previous_period=False, fromfile=None,
-                encoding='cp1251'):
+                encoding='utf8'):
         """Return report of using connection. period='curent' or 'previous' """
         raw_html = self.get_log_raw(previous_period, fromfile, encoding=encoding)
         if not raw_html:
-            return False
+            return []
         return StatPageParser.parse_html(raw_html)
 
     def get_additional_info(self):
@@ -295,15 +272,25 @@ class ByFlyUser(object):
         return StatPageParser.parse_total_stat_info(raw_html)
 
     def get_payments_page(self):
+        html = self.send_request("get", self.URL_PAYMENTS_PAGE, logfile=self._Log4)
+        return PaymentsPageParser.parse_claim_payments(html)
+
+    def send_request(self, method, url, **kwargs):
         try:
-            r = self.session.get(self.URL_PAYMENTS_PAGE)
+            logfile = kwargs.pop("logfile", None)
+            method = getattr(self.session, method)
+        except AttributeError:
+            raise ByflyException("Invalid method {}".format(method))
+        try:
+            r = method(url, **kwargs)
             if r.status_code != 200:
-                raise ByflyInvalidResponseException("Payments page status code is {}".format(r.status_code))
+                raise ByflyInvalidResponseException("Page status code is {}".format(r.status_code))
             html = r.text
-            log_to_file(self._Log4, html)
+            if logfile:
+                log_to_file(logfile, html)
         except Exception as e:
             raise ByflyInvalidResponseException(get_exception_str(e))
-        return PaymentsPageParser.parse_claim_payments(html)
+        return html
 
     def get_money_measure(self):
         return MONEY_MEASURE

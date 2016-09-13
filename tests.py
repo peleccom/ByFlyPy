@@ -265,6 +265,20 @@ class TestByFlyUserClass(TestCase):
             with self.assertRaises(byflyuser.ByflyInvalidResponseException):
                 self._byflyuser.get_payments_page()
 
+    def test_send_request(self):
+        with self.assertRaises(byflyuser.ByflyException):
+            self._byflyuser.send_request("nosuchmethod", "http://example.com")
+
+    def test_get_log(self):
+        sessions = self._byflyuser.get_log(fromfile="testdata/statistic_page.html")
+        self.assertEqual(len(sessions), 1)
+        session = sessions[0]
+        self.assertIsInstance(session, byflyuser.Session)
+        self.assertEqual(session.duration, timedelta(hours=69, minutes=0, seconds=21))
+        self.assertEqual(session.cost, Decimal(0))
+        sessions = self._byflyuser.get_log(fromfile="testdata/statistic_page_not_found.html")
+        self.assertEqual(len(sessions), 0)
+
 class TestMainProg(TestCase):
     def test_import_plot(self):
         byfly.import_plot()
