@@ -30,10 +30,15 @@ HAS_MATPLOT = False
 logger = logging.getLogger(__name__)
 plotinfo = None
 
+try:
+    input = raw_input
+except:
+    input = input
+
 
 def pause():
     """Show 'press any key'"""
-    raw_input("Press <Enter> to close")
+    input("Press <Enter> to close")
 
 
 def import_plot():
@@ -194,7 +199,7 @@ class Program(object):
         try:
             a = True
             while a:
-                a = raw_input("Login:")
+                a = input("Login:")
                 if a == '':
                     print("Incorrect data")
                     sys.exit(1)
@@ -208,10 +213,10 @@ class Program(object):
                 opt.password = a
                 import_plot()
                 if HAS_MATPLOT:
-                    a = raw_input("Plot graph? [y/n]")
+                    a = input("Plot graph? [y/n]")
                     if a in ['y', 'Y']:
                         opt.graph = True
-                        a = raw_input("Which kind of graph [time/traf]")
+                        a = input("Which kind of graph [time/traf]")
                         if a == 'time':
                             opt.graph = 'time'
                         elif a == 'traf':
@@ -221,7 +226,7 @@ class Program(object):
                 self.ui(opt)
                 cont = False
                 while True:
-                    a = raw_input("Continue with another login [y/n]?")
+                    a = input("Continue with another login [y/n]?")
                     if a == 'y':
                         cont = True
                         break
