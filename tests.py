@@ -169,6 +169,7 @@ class TestUserInfoClass(TestCase):
         self.assertEqual(user_info.balance, self.BALANCE)
         self.assertEqual(user_info.plan, self.PLAN)
 
+
 class TestTotalStatInfoClass(TestCase):
     def test_total_stat_info(self):
         TRAF = 1000
@@ -176,6 +177,7 @@ class TestTotalStatInfoClass(TestCase):
         total_stat_info = byflyuser.TotalStatInfo(TRAF, COST)
         self.assertEqual(total_stat_info.total_cost, COST)
         self.assertEqual(total_stat_info.total_traf, TRAF)
+
 
 class TestClaimPaymentClass(TestCase):
     def test_claim_payment(self):
@@ -279,6 +281,7 @@ class TestByFlyUserClass(TestCase):
         sessions = self._byflyuser.get_log(fromfile="testdata/statistic_page_not_found.html")
         self.assertEqual(len(sessions), 0)
 
+
 class TestMainProg(TestCase):
     def test_import_plot(self):
         byfly.import_plot()
@@ -329,6 +332,7 @@ class TestMainProg(TestCase):
             login = "test"
             password = "test"
             quiet = False
+
         with requests_mock.Mocker() as m:
             f = codecs.open("testdata/account_page.html", 'r', encoding='utf8')
             account_raw_data = f.read()
@@ -357,7 +361,6 @@ class TestServerConnection(TestCase):
             byfly_user.login()
 
 
-
 class TestStatPageParser(TestCase):
     def testparser(self):
         with codecs.open("testdata/statistic_page.html", encoding='utf8') as f:
@@ -381,6 +384,7 @@ class TestStatPageParser(TestCase):
                 ui = byfly.UI(byflyUser)
                 ui.print_additional_info()
 
+
 class TestPaymentsPageParser(TestCase):
     def test_parser(self):
         with codecs.open("testdata/payments_page.html", encoding='utf8') as f:
@@ -389,6 +393,13 @@ class TestPaymentsPageParser(TestCase):
             self.assertEqual(len(claim_payments), 3)
             self.assertTrue(claim_payments[0].is_active)
             self.assertFalse(claim_payments[1].is_active)
+
+    def test_empty_payments_page(self):
+        with codecs.open("testdata/payments_empty_page.html", encoding='utf8') as f:
+            html = f.read()
+            claim_payments = byflyuser.PaymentsPageParser.parse_claim_payments(html)
+            self.assertEqual(len(claim_payments), 0)
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.CRITICAL)

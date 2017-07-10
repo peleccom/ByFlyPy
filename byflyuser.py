@@ -8,7 +8,7 @@
 # Created:     28.10.2011
 # Copyright:   (c) Александр 2011
 # -------------------------------------------------------------------------------
-'''User Class'''
+"""User Class"""
 from __future__ import unicode_literals, absolute_import, print_function
 import re
 import codecs
@@ -32,8 +32,10 @@ class ByflyEmptyResponseException(ByflyException):
 class ByflyBanException(ByflyException):
     pass
 
+
 class ByflyAuthException(ByflyException):
     pass
+
 
 class ByflyInvalidResponseException(ByflyException):
     pass
@@ -151,6 +153,7 @@ class ClaimPayment(object):
     def cost(self):
         return self._cost
 
+
 class ByFlyUser(object):
     """Interface to get information
     usage:
@@ -190,7 +193,7 @@ class ByFlyUser(object):
         return "%s" % self._last_error
 
     def check_error_message(self, html):
-        '''Parse html and return 'OK' ,error representation string or None'''
+        """Parse html and return 'OK' ,error representation string or None"""
         if not html:
             raise ByflyEmptyResponseException("Server return empty response")
         if html.find(self.LoginErrorMessages.ERR_BAN) != -1:
@@ -298,6 +301,7 @@ class ByFlyUser(object):
     def get_traf_measure(self):
         return TRAF_MEASURE
 
+
 class PageParser(object):
     @classmethod
     def get_table_dict(cls, html):
@@ -349,6 +353,7 @@ class PageParser(object):
     def strip_tags(cls, html):
         TAGS_RE = re.compile('<[^<]+?>')
         return re.sub(TAGS_RE, '', html)
+
 
 class AccountPageParser(PageParser):
     @classmethod
@@ -472,6 +477,7 @@ class StatPageParser(PageParser):
         except Exception as e:
             return None
 
+
 class PaymentsPageParser(PageParser):
     @classmethod
     def parse_claim_payments(cls, html):
@@ -485,7 +491,8 @@ class PaymentsPageParser(PageParser):
                     if cell.startswith('Зачисленные обещанные платежи'):
                         if len(table) > 2:
                             for row in table[2:]:
-                                assert len(row), 5
+                                if not len(row) == 5:
+                                    continue
                                 is_active = row[3] == "Активен"
                                 claim_payments.append(ClaimPayment(row[0], row[1], is_active, row[2], row[4]))
         return claim_payments
