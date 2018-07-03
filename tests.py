@@ -357,7 +357,7 @@ class TestMainProg(TestCase):
 class TestServerConnection(TestCase):
     def test_wrong_password(self):
         byfly_user = byflyuser.ByFlyUser("demo", "demo")
-        with self.assertRaises(byflyuser.ByflyAuthException):
+        with self.assertRaises(byflyuser.ByflyException):
             byfly_user.login()
 
 

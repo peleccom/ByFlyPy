@@ -157,9 +157,11 @@ class ClaimPayment(object):
 class ByFlyUser(object):
     """Interface to get information
     usage:
-        user=ByFlyUser("login","password")
-        user.Login() # connect to server and login
-        user.PrintInfo() #print account info
+        user=ByFlyUser("login", "password")
+        user.login() # connect to server and login
+        info = user.get_account_info_page()
+        print(info.full_name) #print account info
+        print(info.balance) #print account info
     """
 
     class LoginErrorMessages(object):
@@ -167,6 +169,7 @@ class ByFlyUser(object):
         ERR_STUCK_IN_LOGIN = 'Осуществляется вход в систему'
         ERR_TIMEOUT_LOGOUT = 'Сеанс работы после определенного периода бездействия заканчивается'
         ERR_INCORRECT_CRED = 'Введен неверный пароль или абонент не существует'
+        ERR_PLEASE_RETRY = 'Произошла ошибка. Попробуйте позже'
 
     _Log1 = '1.html'
     _Log2 = '2.html'
@@ -174,10 +177,10 @@ class ByFlyUser(object):
     _Log4 = '4.html'
     _last_error = ''
     _last_exception = None
-    URL_LOGIN_PAGE = 'https://issa.beltelecom.by/main.html'
-    URL_ACCOUNT_PAGE = 'https://issa.beltelecom.by/main.html'
-    URL_STATISTIC_PAGE = 'https://issa.beltelecom.by/statact.html'
-    URL_PAYMENTS_PAGE = 'https://issa.beltelecom.by/payact.html'
+    URL_LOGIN_PAGE = 'https://issaold.beltelecom.by/main.html'
+    URL_ACCOUNT_PAGE = 'https://issaold.beltelecom.by/main.html'
+    URL_STATISTIC_PAGE = 'https://issaold.beltelecom.by/statact.html'
+    URL_PAYMENTS_PAGE = 'https://issaold.beltelecom.by/payact.html'
 
     def __init__(self, login, password):
         self._login = login
@@ -202,6 +205,8 @@ class ByFlyUser(object):
             return M_REFRESH
         if html.find(self.LoginErrorMessages.ERR_TIMEOUT_LOGOUT) != -1:
             return M_SESSION
+        if html.find(self.LoginErrorMessages.ERR_PLEASE_RETRY) != -1:
+            raise ByflyException(self.LoginErrorMessages.ERR_PLEASE_RETRY)
         if html.find(self.LoginErrorMessages.ERR_INCORRECT_CRED) != -1:
             raise ByflyAuthException(self.LoginErrorMessages.ERR_INCORRECT_CRED)
         if html.find(START_PAGE_MARKER) != -1:
