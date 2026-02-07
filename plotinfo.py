@@ -1,140 +1,219 @@
-﻿# -*- coding: UTF-8 -*-
-# -------------------------------------------------------------------------------
-# Name:        plotinfo.py
-# Purpose:
-#
-# Author:      Александр
-#
-# Created:     28.10.2011
-# Copyright:   (c) Александр 2011
-# -------------------------------------------------------------------------------
-try:
-    import matplotlib.pylab as plt
-    import matplotlib as mpl
-except:
-    raise ImportError
+"""Plotting module for ByFly statistics visualization."""
+
 import calendar
 import datetime
-##mpl.rcParams['font.serif']="Verdana, Arial"
-##mpl.rcParams['font.cursive']="Courier New, Arial"
-##mpl.rcParams['font.fantasy']="Comic Sans MS, Arial"
-##mpl.rcParams['font.monospace']="Arial"
-mpl.rcParams['font.sans-serif'] = "Tahoma, Arial, DejaVu Serif"
-_Months = {1: u'Января', 2: u'Февраля', 3: u'Марта', 4: u'Апреля', 5: u'Мая', 6: u'Июня', 7: u'Июля', 8: u'Августа',
-           9: u'Сентября', 10: u'Октября', 11: u'Ноября', 12: u'Декабря'}
+from collections.abc import Generator
+
+try:
+    import matplotlib as mpl
+    import matplotlib.pylab as plt
+except ImportError as err:
+    raise ImportError("matplotlib is required for plotting") from err
+
+mpl.rcParams["font.sans-serif"] = "Tahoma, Arial, DejaVu Serif"
+
+_MONTHS = {
+    1: "Января",
+    2: "Февраля",
+    3: "Марта",
+    4: "Апреля",
+    5: "Мая",
+    6: "Июня",
+    7: "Июля",
+    8: "Августа",
+    9: "Сентября",
+    10: "Октября",
+    11: "Ноября",
+    12: "Декабря",
+}
 
 
-def _getweekends(date):
-    '''Get date and return list of weekeds in this month'''
-    if not type(date) == datetime.datetime:
+def _get_weekends(date: datetime.datetime) -> Generator[int, None, None]:
+    """Get dates and return generator of weekend days in this month.
+
+    Args:
+        date: Date to get weekends for
+
+    Yields:
+        Day numbers that are weekends
+    """
+    if not isinstance(date, datetime.datetime):
         return
+
     try:
-        for i in range(1, 32):
-            day = date.replace(day=i)
+        for day_num in range(1, 32):
+            day = date.replace(day=day_num)
             if day.weekday() > 4:
-                yield i
-    except:
+                yield day_num
+    except ValueError:
         return
 
 
-class Plotter(object):
-    """
-        Class for plotting
-    """
+class Plotter:
+    """Class for plotting ByFly statistics."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def _get_traf_peaks(self, sessions):
-        """traf in days of month"""
-        x1 = {}
-        BeginDate = datetime.datetime(sessions[0].begin.year, sessions[0].begin.month, 1)  ## Can be 1-th day of month
-        year_add = 1 if sessions[-1].begin.month == 12 else 0
-        EndDate = datetime.datetime(sessions[-1].begin.year + year_add, (sessions[-1].begin.month + 1) % 12,
-                                    1)  ##first day of next month
-        x = BeginDate
-        maxday = calendar.monthrange(BeginDate.year, BeginDate.month)[1]
-        for i in range(1, maxday + 1):
-            x1[i] = 0
-        for session in sessions:
-            x1[session.begin.day] += session.ingoing
-        return [list(x1.keys()), list(x1.values()), maxday]
+    def _get_traf_peaks(self, sessions: list) -> tuple[list[int], list[float], int]:
+        """Get traffic data per day of month.
 
-    def _get_time_peaks(self, sessions):
-        """fill the month structure - tuple of x,y and maxday of month"""
-        x1 = []  ## Day
-        y1 = []  ##time of connectoin
-        BeginDate = datetime.datetime(sessions[0].begin.year, sessions[0].begin.month, 1)  ## Can be 1-th day of month
-        year_add = 1 if sessions[-1].begin.month == 12 else 0
-        EndDate = datetime.datetime(sessions[-1].begin.year + year_add, (sessions[-1].begin.month + 1) % 12,
-                                    1)  ##first day of next month
-        x = BeginDate
-        dx = datetime.timedelta(minutes=1)
+        Args:
+            sessions: List of session objects
+
+        Returns:
+            Tuple of (days, traffic_values, max_day)
+        """
+        traffic_per_day: dict[int, float] = {}
+        begin_date = datetime.datetime(sessions[0].begin.year, sessions[0].begin.month, 1)
+
+        max_day = calendar.monthrange(begin_date.year, begin_date.month)[1]
+        for day_num in range(1, max_day + 1):
+            traffic_per_day[day_num] = 0.0
+
         for session in sessions:
-            while (x < session.end):
+            traffic_per_day[session.begin.day] += session.ingoing
+
+        return list(traffic_per_day.keys()), list(traffic_per_day.values()), max_day
+
+    def _get_time_peaks(self, sessions: list) -> tuple[list[int], list[float], int]:
+        """Fill the month structure with connection time data.
+
+        Args:
+            sessions: List of session objects
+
+        Returns:
+            Tuple of (days, hours_with_minutes, max_day)
+        """
+        days: list[int] = []
+        hours: list[float] = []
+
+        begin_date = datetime.datetime(sessions[0].begin.year, sessions[0].begin.month, 1)
+
+        minute_delta = datetime.timedelta(minutes=1)
+
+        for session in sessions:
+            x = begin_date
+            while x < session.end:
                 if session.begin < x < session.end:
-                    x1.append(x.day)
-                    y1.append(x.hour + float(x.minute) / 60)
-                x += dx
-        maxday = calendar.monthrange(BeginDate.year, BeginDate.month)[1]
-        result = [x1, y1, maxday]
-        return result
+                    days.append(x.day)
+                    hours.append(x.hour + float(x.minute) / 60)
+                x += minute_delta
 
-    def plot_time_allocation(self, sessions, fname=None, title=None, show=True):
+        max_day = calendar.monthrange(begin_date.year, begin_date.month)[1]
+        return days, hours, max_day
+
+    def plot_time_allocation(
+        self, sessions: list, fname: str | None = None, title: str | None = None, show: bool = True
+    ) -> bool:
+        """Plot time allocation graph.
+
+        Args:
+            sessions: List of session objects
+            fname: Optional filename to save plot to
+            title: Optional plot title
+            show: Whether to display the plot
+
+        Returns:
+            True if successful, False otherwise
+        """
         if not sessions:
             return False
-        timepeaks = self._get_time_peaks(sessions)
+
+        time_peaks = self._get_time_peaks(sessions)
         plt.clf()
-        plt.plot(timepeaks[0], timepeaks[1], 'b.', linewidth=1, label=u'Время использования соединения')
+        plt.plot(
+            time_peaks[0],
+            time_peaks[1],
+            "b.",
+            linewidth=1,
+            label="Время использования соединения",
+        )
         plt.grid(True)
-        plt.xlabel(u"Дни %s" % (_Months[sessions[0].begin.month].lower()))
-        plt.ylabel(u"Время")
-        plt.legend(loc='best')
-        _, la = plt.xticks(range(1, timepeaks[2] + 1))
-        for i in _getweekends(sessions[0].begin):
-            la[i - 1].set_backgroundcolor('red')
+        plt.xlabel(f"Дни {_MONTHS[sessions[0].begin.month].lower()}")
+        plt.ylabel("Время")
+        plt.legend(loc="best")
+        _, la = plt.xticks(range(1, time_peaks[2] + 1))
+        for day_num in _get_weekends(sessions[0].begin):
+            la[day_num - 1].set_backgroundcolor("red")
         plt.yticks(range(24))
+
         if title:
             plt.title(title)
+
         if fname:
             try:
                 plt.savefig(fname)
-            except Exception, e:
-                print "Exception: %s" % e
+            except Exception as err:
+                print(f"Exception: {err}")
+
         if show:
             plt.show()
 
-    def plot_traf_allocation(self, sessions, fname=None, title=None, show=True):
+        return True
+
+    def plot_traf_allocation(
+        self, sessions: list, fname: str | None = None, title: str | None = None, show: bool = True
+    ) -> bool:
+        """Plot traffic allocation graph.
+
+        Args:
+            sessions: List of session objects
+            fname: Optional filename to save plot to
+            title: Optional plot title
+            show: Whether to display the plot
+
+        Returns:
+            True if successful, False otherwise
+        """
         if not sessions:
             return False
-        timepeaks = self._get_traf_peaks(sessions)
-        # plt.clf()
+
+        time_peaks = self._get_traf_peaks(sessions)
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        for i, j in enumerate(timepeaks[0]):
-            timepeaks[0][i] = j - 0.5
-        rects = ax.bar(timepeaks[0], timepeaks[1], width=0.5, label=u'Трафик за день')
-        # Создаем подписи для файлов
-        for i, rect in enumerate(rects):
+
+        # Adjust x positions for bar chart
+        for idx, val in enumerate(time_peaks[0]):
+            time_peaks[0][idx] = val - 0.5
+
+        rects = ax.bar(time_peaks[0], time_peaks[1], width=0.5, label="Трафик за день")
+
+        # Add labels for bars
+        for idx, rect in enumerate(rects):
             height = rect.get_height()
-            traf = timepeaks[1][i]
+            traf = time_peaks[1][idx]
             if traf == 0:
                 continue
-            ax.text(rect.get_x() + rect.get_width() / 1.5, 1.05 * height, '%.2f' % traf,
-                    ha='center', va='bottom', rotation='vertical', color='green')
+            ax.text(
+                rect.get_x() + rect.get_width() / 1.5,
+                1.05 * height,
+                f"{traf:.2f}",
+                ha="center",
+                va="bottom",
+                rotation="vertical",
+                color="green",
+            )
+
         ax.grid(True)
-        plt.xlabel(u"Дни %s" % (_Months[sessions[0].begin.month].lower()))
+        plt.xlabel(f"Дни {_MONTHS[sessions[0].begin.month].lower()}")
         plt.ylabel("MB")
-        ax.legend(loc='best')
-        _, la = plt.xticks(range(1, timepeaks[2] + 1))
-        for i in _getweekends(sessions[0].begin):
-            la[i - 1].set_backgroundcolor('red')
+        ax.legend(loc="best")
+        _, la = plt.xticks(range(1, time_peaks[2] + 1))
+
+        for day_num in _get_weekends(sessions[0].begin):
+            la[day_num - 1].set_backgroundcolor("red")
+
         if title:
             plt.title(title)
+
         if fname:
             try:
                 plt.savefig(fname)
-            except Exception, e:
-                print "Exception: %s" % e
+            except Exception as err:
+                print(f"Exception: {err}")
+
         if show:
             plt.show()
+
+        return True

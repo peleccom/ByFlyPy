@@ -1,0 +1,69 @@
+[project]
+name = "ByFlyPy"
+version = "3.1"
+description = "ByFly user console application"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    {name = "Александр"},
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests>=2.0.0",
+]
+
+[project.optional-dependencies]
+plot = [
+    "matplotlib>=3.0.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "requests-mock>=1.10.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+byfly = "byfly:main"
+
+[project.urls]
+Homepage = "https://github.com/anomalyco/ByFlyPy"
+Repository = "https://github.com/anomalyco/ByFlyPy"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["byfly", "byflyuser", "database", "plotinfo", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["."]
+python_files = ["tests.py"]
+python_functions = ["test_*"]
+python_classes = ["Test*"]
+addopts = "-v --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+explicit_package_bases = true

@@ -1,0 +1,56 @@
+Metadata-Version: 2.4
+Name: ByFlyPy
+Version: 3.1
+Summary: ByFly user console application
+Author: Александр
+Project-URL: Homepage, https://github.com/anomalyco/ByFlyPy
+Project-URL: Repository, https://github.com/anomalyco/ByFlyPy
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: requests>=2.0.0
+Provides-Extra: plot
+Requires-Dist: matplotlib>=3.0.0; extra == "plot"
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: requests-mock>=1.10.0; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
+Requires-Dist: mypy>=1.0.0; extra == "dev"
+
+ByFlyPy
+================
+[![Build Status](https://travis-ci.org/peleccom/ByFlyPy.svg?branch=master)](https://travis-ci.org/peleccom/ByFlyPy)
+[![codecov](https://codecov.io/gh/peleccom/ByFlyPy/branch/master/graph/badge.svg)](https://codecov.io/gh/peleccom/ByFlyPy)
+
+Tiny program and class to check ByFly (*The belarus biggest ICS provider*) account balance, get user information, plot some information
+
+Маленькая программа и класс для проверки баланса аккаунта ByFly, получения информации и построения некоторых графиков
+
+Class usage:
+
+        from byflyuser import ByFlyUser
+
+        user = ByFlyUser("login", "password")
+
+        # connect to server and login
+        user.login()
+
+        info = user.get_account_info_page()
+
+        #  print account info
+        print(info.full_name)
+        print(info.balance)
+        
+
+CLI usage:
+
+        python byfly.py -l <your_login_number> -p <your_password>
+
+
