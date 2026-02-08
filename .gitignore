@@ -6,3 +6,5 @@
 .idea/
 .coverage
 coverage.xml
+*.egg-info/
+__pycache__/
