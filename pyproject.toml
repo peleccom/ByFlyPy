@@ -1,6 +1,6 @@
 [project]
 name = "ByFlyPy"
-version = "3.1"
+version = "3.2"
 description = "ByFly user console application"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -33,7 +33,7 @@ dev = [
 ]
 
 [project.scripts]
-byfly = "byfly:main"
+byfly = "byflypy.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/anomalyco/ByFlyPy"
@@ -43,12 +43,12 @@ Repository = "https://github.com/anomalyco/ByFlyPy"
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-py-modules = ["byfly", "byflyuser", "database", "plotinfo", "tests"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["."]
-python_files = ["tests.py"]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
 python_functions = ["test_*"]
 python_classes = ["Test*"]
 addopts = "-v --strict-markers"
