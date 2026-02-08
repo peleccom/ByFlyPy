@@ -15,7 +15,6 @@ from byflypy.plotter import Plotter
 
 logger = logging.getLogger(__name__)
 
-__FIGURE_FORMATS__ = ["png", "pdf", "svg", "eps", "ps"]
 _DEFAULT_DATABASE_FILENAME = "users.db"
 HAS_MATPLOT = False
 

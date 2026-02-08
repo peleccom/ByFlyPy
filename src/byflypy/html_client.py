@@ -46,14 +46,6 @@ class ByFlyInvalidResponseError(ByFlyError):
     """Raised when server returns an invalid response."""
 
 
-# Backwards compatibility aliases
-ByflyException = ByFlyError
-ByflyEmptyResponseException = ByFlyEmptyResponseError
-ByflyBanException = ByFlyBanError
-ByflyAuthException = ByFlyAuthError
-ByflyInvalidResponseException = ByFlyInvalidResponseError
-
-
 M_BAN = 0
 M_SESSION = 1
 M_WRONG_PASS = 2
@@ -137,17 +129,6 @@ class ByFlyHtmlClient:
         self._password = password
         self.info = None
         self.session = requests.session()
-        self._last_error = ""
-        self._last_exception = None
-
-    def _set_last_error(self, error: str, exception: Exception | None = None) -> None:
-        """Set last error information."""
-        self._last_error = error
-        self._last_exception = exception
-
-    def get_last_error(self) -> str:
-        """Get last error message."""
-        return str(self._last_error)
 
     def check_error_message(self, html: str) -> int:
         """Parse HTML and return status code."""
@@ -194,9 +175,6 @@ class ByFlyHtmlClient:
             self._set_last_error(get_exception_str(e))
             return None
         info = AccountPageParser.parse_user_info(html)
-        if info is None:
-            self._set_last_error("Failed to parse account info")
-            return None
         return info
 
     def get_log_raw(
@@ -239,6 +217,8 @@ class ByFlyHtmlClient:
     def get_additional_info(self) -> TotalStatInfo | None:
         """Get total statistics information."""
         raw_html = self.get_log_raw()
+        if raw_html is None:
+            return None
         return StatPageParser.parse_total_stat_info(raw_html)
 
     def get_payments_page(self) -> list[ClaimPayment]:

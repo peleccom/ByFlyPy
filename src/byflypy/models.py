@@ -66,7 +66,6 @@ class TrafficSession:
 
     def to_legacy_session(self) -> Session:
         """Convert to legacy Session format for plotting compatibility."""
-        # Parse duration from time_on format "HH:MM:SS" or "DDD:HH:MM:SS"
         duration = parse_duration(self.time_on)
 
         return Session(
@@ -138,5 +137,4 @@ def parse_duration(time_str: str) -> timedelta:
         days, hours, minutes, seconds = map(int, parts)
         return timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
     else:
-        # Fallback
         return timedelta()
