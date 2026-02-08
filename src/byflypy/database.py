@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sqlite3
-from typing import Optional
 
 
 class Table:
@@ -11,7 +10,7 @@ class Table:
 
     def __init__(self, db_filename: str) -> None:
         self.db_filename = db_filename
-        self._connection: Optional[sqlite3.Connection] = None
+        self._connection: sqlite3.Connection | None = None
 
     def _get_connection(self) -> sqlite3.Connection:
         if self._connection is None:
@@ -61,7 +60,7 @@ class DBManager:
         self._table.execute(query, (login, password))
         self._table.commit()
 
-    def get_password(self, login: str) -> Optional[tuple[str, str]]:
+    def get_password(self, login: str) -> tuple[str, str | None]:
         """Get password for login."""
         query = f"SELECT login, password FROM {self.TABLE_NAME} WHERE login = ?"
         cursor = self._table.execute(query, (login,))

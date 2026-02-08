@@ -7,7 +7,6 @@ import re
 import time
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Optional
 
 import requests
 
@@ -141,7 +140,7 @@ class ByFlyHtmlClient:
         self._last_error = ""
         self._last_exception = None
 
-    def _set_last_error(self, error: str, exception: Optional[Exception] = None) -> None:
+    def _set_last_error(self, error: str, exception: Exception | None = None) -> None:
         """Set last error information."""
         self._last_error = error
         self._last_exception = exception
@@ -174,9 +173,9 @@ class ByFlyHtmlClient:
         if not self._login and not self._password:
             raise ByFlyAuthError("Пустой пароль или логин")
 
-        LANG_ID = 2
+        lang_id = 2
         data = {
-            "Lang": LANG_ID,
+            "Lang": lang_id,
             "oper_user": self._login,
             "passwd": self._password,
         }
@@ -187,7 +186,7 @@ class ByFlyHtmlClient:
             logger.exception(get_exception_str(e))
             raise
 
-    def get_account_info_page(self) -> Optional[UserInfo]:
+    def get_account_info_page(self) -> UserInfo | None:
         """Parse main page and return account information."""
         try:
             html = self.send_request("get", self.URL_ACCOUNT_PAGE, logfile=self._Log2)
@@ -203,9 +202,9 @@ class ByFlyHtmlClient:
     def get_log_raw(
         self,
         previous_period: bool = False,
-        fromfile: Optional[str] = None,
+        fromfile: str | None = None,
         encoding: str = "utf8",
-    ) -> Optional[str]:
+    ) -> str | None:
         """Return connection report as raw HTML."""
         if not fromfile:
             try:
@@ -228,7 +227,7 @@ class ByFlyHtmlClient:
     def get_log(
         self,
         previous_period: bool = False,
-        fromfile: Optional[str] = None,
+        fromfile: str | None = None,
         encoding: str = "utf8",
     ) -> list[Session]:
         """Return parsed connection report."""
@@ -237,7 +236,7 @@ class ByFlyHtmlClient:
             return []
         return StatPageParser.parse_html(raw_html)
 
-    def get_additional_info(self) -> Optional[TotalStatInfo]:
+    def get_additional_info(self) -> TotalStatInfo | None:
         """Get total statistics information."""
         raw_html = self.get_log_raw()
         return StatPageParser.parse_total_stat_info(raw_html)
@@ -317,22 +316,22 @@ class PageParser:
     @classmethod
     def get_tables(cls, html: str) -> list[list[list[str]]]:
         """Extract all tables from HTML."""
-        TABLE_RE = r"<table[^>]*>.*?</table[^>]*>"
-        matches = re.findall(TABLE_RE, html, re.DOTALL)
+        table_re = r"<table[^>]*>.*?</table[^>]*>"
+        matches = re.findall(table_re, html, re.DOTALL)
         return [cls.get_row(match) for match in matches]
 
     @classmethod
     def get_row(cls, table_html: str) -> list[list[str]]:
         """Extract rows from table HTML."""
-        ROW_RE = r"<tr[^>]*>.*?</tr[^>]*>"
-        matches = re.findall(ROW_RE, table_html, re.DOTALL)
+        row_re = r"<tr[^>]*>.*?</tr[^>]*>"
+        matches = re.findall(row_re, table_html, re.DOTALL)
         return [cls.get_cell(match) for match in matches]
 
     @classmethod
     def get_cell(cls, table_html: str) -> list[str]:
         """Extract cells from row HTML."""
-        CELL_RE = r"<td[^>]*>(.*?)</td[^>]*>"
-        matches = re.findall(CELL_RE, table_html, re.DOTALL)
+        cell_re = r"<td[^>]*>(.*?)</td[^>]*>"
+        matches = re.findall(cell_re, table_html, re.DOTALL)
         return [cls.strip_tags(match) for match in matches]
 
     @classmethod
@@ -349,7 +348,7 @@ class AccountPageParser(PageParser):
     BALANCE_REGEXPR_PATTERN = r"Актуальный баланс: <b>(.*)</b>"
 
     @classmethod
-    def parse_user_info(cls, html: str) -> Optional[UserInfo]:
+    def parse_user_info(cls, html: str) -> UserInfo | None:
         """Parse user information from account page."""
         balance = cls.parse_balance(html)
         if not balance:
@@ -360,7 +359,7 @@ class AccountPageParser(PageParser):
         return UserInfo(full_name, plan, balance)
 
     @classmethod
-    def parse_balance(cls, html: str) -> Optional[Decimal]:
+    def parse_balance(cls, html: str) -> Decimal | None:
         """Parse balance from account page."""
         m = re.search(cls.BALANCE_REGEXPR_PATTERN, html)
         if m:
@@ -377,9 +376,9 @@ class AccountPageParser(PageParser):
 class StatPageParser(PageParser):
     """Parser for statistics page."""
 
-    TABLE_RE = r'<table[^>]* class="content">.*?</table>'
-    ROW_RE = r"<tr[^>]*>(.*?)</tr>"
-    CELL_RE = r"<td[^>]*>(.*?)</td>"
+    table_re = r'<table[^>]* class="content">.*?</table>'
+    row_re = r"<tr[^>]*>(.*?)</tr>"
+    cell_re = r"<td[^>]*>(.*?)</td>"
     DATE_FORMAT = "%d.%m.%Y  %H:%M:%S"
 
     KEY_SUM_COST = "Сумма"
@@ -397,9 +396,9 @@ class StatPageParser(PageParser):
         ]
 
     @staticmethod
-    def get_table(html: str) -> Optional[str]:
+    def get_table(html: str) -> str | None:
         """Get the statistics table from HTML."""
-        tables = re.findall(StatPageParser.TABLE_RE, html, re.DOTALL)
+        tables = re.findall(StatPageParser.table_re, html, re.DOTALL)
         if not tables or len(tables) < 2:
             return None
         return tables[1]
@@ -407,21 +406,21 @@ class StatPageParser(PageParser):
     @staticmethod
     def get_rows(table_html: str) -> list[str]:
         """Get data rows from table HTML."""
-        rows = re.findall(StatPageParser.ROW_RE, table_html, re.DOTALL)
+        rows = re.findall(StatPageParser.row_re, table_html, re.DOTALL)
         if not rows or len(rows) < 2:
             return []
         return rows[1:]
 
     @staticmethod
-    def parse_row(row_html: str) -> Optional[list[str]]:
+    def parse_row(row_html: str) -> list[str | None]:
         """Parse cells from row HTML."""
-        cells = re.findall(StatPageParser.CELL_RE, row_html, re.DOTALL)
+        cells = re.findall(StatPageParser.cell_re, row_html, re.DOTALL)
         if not cells:
             return None
         return cells
 
     @staticmethod
-    def parse_session(row_cells: list[str]) -> Optional[Session]:
+    def parse_session(row_cells: list[str]) -> Session | None:
         """Parse session data from row cells."""
         if len(row_cells) != 7:
             return None
@@ -470,7 +469,7 @@ class StatPageParser(PageParser):
             return timedelta(hours=hours, minutes=minutes, seconds=seconds)
 
     @classmethod
-    def parse_total_stat_info(cls, html: str) -> Optional[TotalStatInfo]:
+    def parse_total_stat_info(cls, html: str) -> TotalStatInfo | None:
         """Parse total statistics from page."""
         if not html:
             return None

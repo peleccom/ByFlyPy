@@ -12,6 +12,7 @@ from byflypy.api_client import (
     ByFly2FARequiredError,
     ByFlyApiClient,
     ByFlyAuthError,
+    ByFlyError,
 )
 
 
@@ -205,7 +206,7 @@ class TestGetTrafficDetails:
                 "https://myapi.beltelecom.by/api/v2/contracts/123/applications/456/fetch-traffic-details",
                 status_code=500,
             )
-            with pytest.raises(Exception):
+            with pytest.raises(ByFlyError):
                 authenticated_client.get_traffic_details(123, 456)
 
 

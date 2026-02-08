@@ -7,7 +7,6 @@ import atexit
 import getpass
 import logging
 import sys
-from typing import Optional
 
 from byflypy.api_client import ByFly2FARequiredError, ByFlyApiClient
 from byflypy.html_client import ByFlyError, ByFlyHtmlClient, get_exception_str
@@ -39,7 +38,7 @@ def import_plot() -> None:
             print("Warning: MatPlotlib not installed - Plotting not working.")
 
 
-def pass_from_db(login: str, db_filename: str, opt: argparse.Namespace) -> Optional[str]:
+def pass_from_db(login: str, db_filename: str, opt: argparse.Namespace) -> str | None:
     """Get password from database file."""
     try:
         from byflypy.database import DBManager, Table
@@ -225,7 +224,7 @@ class UI:
 class Program:
     """Main program class for ByFly balance checker."""
 
-    def ui(self, opt: argparse.Namespace, showgraph: Optional[str] = None) -> Optional[int]:
+    def ui(self, opt: argparse.Namespace, showgraph: str | None = None) -> int | None:
         """Output all information."""
         if opt.graph:
             import_plot()
@@ -577,7 +576,7 @@ class Program:
 
     def non_interactive_mode_handler(
         self, opt: argparse.Namespace, database_filename: str
-    ) -> Optional[int]:
+    ) -> int | None:
         """Handle non-interactive mode."""
         if opt.use_api_v1:
             if not opt.login:
