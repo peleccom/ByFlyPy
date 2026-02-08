@@ -15,11 +15,11 @@ from byflypy.models import ClaimPayment, Session, TotalStatInfo, UserInfo
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "ByFlyHtmlClient",
-    "ByFlyError",
-    "ByFlyEmptyResponseError",
-    "ByFlyBanError",
     "ByFlyAuthError",
+    "ByFlyBanError",
+    "ByFlyEmptyResponseError",
+    "ByFlyError",
+    "ByFlyHtmlClient",
     "ByFlyInvalidResponseError",
     "get_exception_str",
     "log_to_file",
@@ -182,8 +182,8 @@ class ByFlyHtmlClient:
         html = self.send_request("post", self.URL_LOGIN_PAGE, logfile=self._Log1, data=data)
         try:
             return self.check_error_message(html) == M_OK
-        except ByFlyError as e:
-            logger.exception(get_exception_str(e))
+        except ByFlyError:
+            logger.exception("Login failed")
             raise
 
     def get_account_info_page(self) -> UserInfo | None:
@@ -257,7 +257,7 @@ class ByFlyHtmlClient:
         try:
             r = http_method(url, **kwargs)
             if r.status_code != 200:
-                raise ByFlyInvalidResponseError(f"Page status code is {r.status_code}")
+                raise ByFlyInvalidResponseError(f"Page status code is {r.status_code}")  # noqa: TRY301
             html = r.text
             if logfile:
                 log_to_file(logfile, html)
@@ -367,8 +367,8 @@ class AccountPageParser(PageParser):
             s = cls.strip_number_field(s)
             try:
                 return Decimal(s)
-            except Exception as e:
-                logger.exception(get_exception_str(e))
+            except Exception:
+                logger.exception("Failed to parse balance")
                 logger.debug("Не определен баланс")
                 return None
 
@@ -493,19 +493,19 @@ class PaymentsPageParser(PageParser):
         claim_payments = []
         tables = cls.get_tables(html)
         for table in tables:
-            if len(table) > 0:
-                row = table[0]
-                if len(row) > 0 and row[0].startswith("Зачисленные обещанные платежи"):
-                    if len(table) > 2:
-                        for row in table[2:]:
-                            if len(row) != 5:
-                                continue
-                            is_active = row[3] == "Активен"
-                            try:
-                                cost = cls.strip_number_field(row[2])
-                            except Exception:
-                                cost = Decimal("0")
-                            claim_payments.append(
-                                ClaimPayment(row[0], row[1], is_active, cost, row[4])
-                            )
+            if (
+                len(table) > 0
+                and len(table[0]) > 0
+                and table[0][0].startswith("Зачисленные обещанные платежи")
+                and len(table) > 2
+            ):
+                for row in table[2:]:
+                    if len(row) != 5:
+                        continue
+                    is_active = row[3] == "Активен"
+                    try:
+                        cost = cls.strip_number_field(row[2])
+                    except Exception:
+                        cost = Decimal("0")
+                    claim_payments.append(ClaimPayment(row[0], row[1], is_active, cost, row[4]))
         return claim_payments

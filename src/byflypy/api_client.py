@@ -17,14 +17,14 @@ from byflypy.models import (
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "ByFlyApiClient",
-    "ApiAuthResult",
-    "ApiUser",
-    "ApiContract",
     "ApiApplication",
-    "ApiTariff",
+    "ApiAuthResult",
+    "ApiContract",
     "ApiService",
+    "ApiTariff",
+    "ApiUser",
     "ByFly2FARequiredError",
+    "ByFlyApiClient",
     "ByFlySMSCodeExpiredError",
 ]
 
@@ -286,9 +286,7 @@ class ByFlyApiClient:
         """Check if client has valid authentication."""
         if not self._access_token:
             return False
-        if self._token_expires_at and datetime.now() >= self._token_expires_at:
-            return False
-        return True
+        return not (self._token_expires_at and datetime.now() >= self._token_expires_at)
 
     def login(self) -> bool:
         """Authenticate with the API.
@@ -455,13 +453,11 @@ class ByFlyApiClient:
         logins = []
         for app in contract.applications:
             if app.btk_login:
-                logins.append(
-                    {
-                        "login": app.btk_login,
-                        "application_id": app.id,
-                        "tariff_name": app.tariff.name if app.tariff else "Unknown",
-                    }
-                )
+                logins.append({
+                    "login": app.btk_login,
+                    "application_id": app.id,
+                    "tariff_name": app.tariff.name if app.tariff else "Unknown",
+                })
         return logins
 
     def get_traffic_details(

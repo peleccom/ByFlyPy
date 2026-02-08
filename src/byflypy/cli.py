@@ -48,10 +48,9 @@ def pass_from_db(login: str, db_filename: str, opt: argparse.Namespace) -> str |
         if res:
             opt.login = res[0]
             return res[1]
-        return None
     except Exception as e:
         print(e)
-        return None
+    return None
 
 
 def print_traffic_table(traffic: TrafficDetails) -> None:
@@ -216,7 +215,8 @@ class UI:
                 traffic = client.get_traffic_details(contract.id, app.id)
                 if traffic and traffic.sessions:
                     return traffic.sessions
-            except Exception:
+            except Exception as e:
+                logger.debug(f"Failed to get traffic for app {app.id}: {e}")
                 continue
         return []
 

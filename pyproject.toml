@@ -7,14 +7,20 @@ requires-python = ">=3.9"
 authors = [
     {name = "Александр"},
 ]
+keywords = ["byfly", "beltelecom", "internet", "balance", "statistics"]
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Utilities",
 ]
 dependencies = [
     "requests>=2.0.0",
@@ -24,13 +30,6 @@ dependencies = [
 plot = [
     "matplotlib>=3.0.0",
 ]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "requests-mock>=1.10.0",
-    "ruff>=0.1.0",
-    "mypy>=1.0.0",
-]
 
 [project.scripts]
 byfly = "byflypy.cli:main"
@@ -38,13 +37,24 @@ byfly = "byflypy.cli:main"
 [project.urls]
 Homepage = "https://github.com/anomalyco/ByFlyPy"
 Repository = "https://github.com/anomalyco/ByFlyPy"
+Issues = "https://github.com/anomalyco/ByFlyPy/issues"
 
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/byflypy"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=7.0.0",
+    "requests-mock>=1.10.0",
+    "ruff>=0.15.0",
+    "mypy>=1.0.0",
+    "matplotlib>=3.0.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -54,16 +64,76 @@ python_classes = ["Test*"]
 addopts = "-v --strict-markers"
 
 [tool.ruff]
-line-length = 100
 target-version = "py39"
+line-length = 100
+fix = true
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP", "B", "C4"]
-ignore = ["E501"]
+select = [
+    # flake8-2020
+    "YTT",
+    # flake8-bandit
+    "S",
+    # flake8-bugbear
+    "B",
+    # flake8-builtins
+    "A",
+    # flake8-comprehensions
+    "C4",
+    # flake8-debugger
+    "T10",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # mccabe
+    "C90",
+    # pycodestyle
+    "E", "W",
+    # pyflakes
+    "F",
+    # pygrep-hooks
+    "PGH",
+    # pyupgrade
+    "UP",
+    # ruff
+    "RUF",
+    # tryceratops
+    "TRY",
+]
+ignore = [
+    # LineTooLong
+    "E501",
+    # DoNotAssignLambda
+    "E731",
+    # Allow long messages in exceptions (Russian text)
+    "TRY003",
+    # Allow ambiguous unicode (Cyrillic characters in Russian text)
+    "RUF001",
+    # Allow complex functions
+    "C901",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105"]
+"src/byflypy/database.py" = ["S608"]
+
+[tool.ruff.format]
+preview = true
 
 [tool.mypy]
-python_version = "3.9"
-warn_return_any = true
-warn_unused_configs = true
+files = ["src"]
 disallow_untyped_defs = true
-explicit_package_bases = true
+no_implicit_optional = true
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
+show_error_codes = true
+python_version = "3.9"
+
+[tool.coverage.report]
+skip_empty = true
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
