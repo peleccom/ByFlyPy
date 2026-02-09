@@ -5,7 +5,7 @@ from decimal import Decimal
 import pytest
 import requests_mock
 
-from byflypy.api_client import (
+from byflypy.clients.api_client import (
     ApiApplication,
     ApiContract,
     ApiUser,

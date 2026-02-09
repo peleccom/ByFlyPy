@@ -5,9 +5,9 @@ import tempfile
 
 import pytest
 
-from byflypy import html_client
+from byflypy.clients import html_client
+from byflypy.clients.html_client import log_to_file
 from byflypy.database import DBManager, Record, Table
-from byflypy.html_client import log_to_file
 
 
 class TestRecord:

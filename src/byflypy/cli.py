@@ -9,10 +9,11 @@ import logging
 import os.path
 import sys
 
-from byflypy import __version__, html_client
-from byflypy.api_client import ByFly2FARequiredError, ByFlyApiClient
+from byflypy import __version__
+from byflypy.clients import html_client
+from byflypy.clients.api_client import ByFly2FARequiredError, ByFlyApiClient
+from byflypy.clients.html_client import ByFlyError, ByFlyHtmlClient, get_exception_str
 from byflypy.database import DBManager, Table
-from byflypy.html_client import ByFlyError, ByFlyHtmlClient, get_exception_str
 from byflypy.models import TrafficDetails
 from byflypy.plotter import Plotter
 

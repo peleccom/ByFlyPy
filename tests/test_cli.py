@@ -7,14 +7,14 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from byflypy.api_client import ApiApplication, ApiContract, ApiTariff
 from byflypy.cli import (
     UI,
     ByFlyApiClient,
     Program,
     print_traffic_table,
 )
-from byflypy.html_client import (
+from byflypy.clients.api_client import ApiApplication, ApiContract, ApiTariff
+from byflypy.clients.html_client import (
     AccountPageParser,
     PaymentsPageParser,
     StatPageParser,

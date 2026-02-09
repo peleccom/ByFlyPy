@@ -1,6 +1,4 @@
-"""ByFlyPy - ByFly balance checker and statistics viewer."""
-
-__version__ = "3.2"
+"""ByFlyPy clients package."""
 
 from byflypy.clients.api_client import ByFly2FARequiredError, ByFlyApiClient
 from byflypy.clients.html_client import (
@@ -11,7 +9,6 @@ from byflypy.clients.html_client import (
     ByFlyHtmlClient,
     ByFlyInvalidResponseError,
 )
-from byflypy.models import ClaimPayment, Session, TotalStatInfo, TrafficDetails, UserInfo
 
 __all__ = [
     "ByFly2FARequiredError",
@@ -22,10 +19,4 @@ __all__ = [
     "ByFlyError",
     "ByFlyHtmlClient",
     "ByFlyInvalidResponseError",
-    "ClaimPayment",
-    "Session",
-    "TotalStatInfo",
-    "TrafficDetails",
-    "UserInfo",
-    "__version__",
 ]
