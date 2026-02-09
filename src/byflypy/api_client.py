@@ -41,6 +41,16 @@ class ByFlyAuthError(Exception):
     """Raised when authentication fails."""
 
 
+def _to_decimal(value: str | int | float | None) -> Decimal:
+    """Convert value to Decimal safely."""
+    if value is None:
+        return Decimal("0")
+    try:
+        return Decimal(str(value))
+    except Exception:
+        return Decimal("0")
+
+
 class ByFlyError(Exception):
     """Base exception for ByFly-related errors."""
 
@@ -73,7 +83,7 @@ class ApiTariff:
             id=data.get("id", 0),
             name=data.get("name", ""),
             description=data.get("description", "") or "",
-            price=Decimal(str(data.get("individual_price", "0"))),
+            price=_to_decimal(data.get("individual_price")),
             group_name=data.get("group", {}).get("name") if data.get("group") else None,
             is_archival=bool(data.get("is_archival", False)),
         )
@@ -97,7 +107,7 @@ class ApiService:
             id=data.get("id", 0),
             name=data.get("name", ""),
             description=data.get("description"),
-            price=Decimal(str(data.get("individual_price", "0"))),
+            price=_to_decimal(data.get("individual_price")),
             period=data.get("period", "month"),
             is_removable=bool(data.get("removable", False)),
         )
@@ -131,7 +141,7 @@ class ApiApplication:
         return cls(
             id=data.get("id", 0),
             tariff_id=data.get("tariff_id", 0),
-            price=Decimal(str(data.get("price", "0"))),
+            price=_to_decimal(data.get("price")),
             tariff=tariff,
             services=services,
             can_change_tariff=bool(data.get("can_change_tariff", False)),
@@ -163,10 +173,10 @@ class ApiContract:
     def from_dict(cls, data: dict) -> ApiContract:
         """Create ApiContract from API response dict."""
         raw_balance = data.get("balance")
-        balance = Decimal(str(raw_balance)) if raw_balance is not None else Decimal("0")
+        balance = _to_decimal(raw_balance)
 
         raw_max_payment = data.get("max_promised_payment_amount")
-        max_payment = Decimal(str(raw_max_payment)) if raw_max_payment is not None else None
+        max_payment = _to_decimal(raw_max_payment) if raw_max_payment is not None else None
 
         applications = [ApiApplication.from_dict(a) for a in data.get("applications", [])]
 
@@ -178,7 +188,7 @@ class ApiContract:
             status=data.get("status", ""),
             name=data.get("name", ""),
             addresses=data.get("addresses"),
-            price=Decimal(str(data.get("price", "0"))),
+            price=_to_decimal(data.get("price")),
             terminate_in=data.get("terminate_in"),
             applications=applications,
             can_add_funds=bool(data.get("can_add_funds", False)),
@@ -249,7 +259,7 @@ class ByFlyApiClient:
         phone: str | None = None,
         password: str | None = None,
         sms_code: str | None = None,
-        contract_id: str | None = None,
+        login: str | None = None,
     ) -> None:
         """Initialize API client.
 
@@ -257,12 +267,12 @@ class ByFlyApiClient:
             phone: Phone number (e.g., "375334444444"). Optional if using access_token.
             password: Account password. Optional if using access_token.
             sms_code: SMS 2FA code (required after first login if enabled)
-            contract_id: Optional contract ID to use directly
+            login: Login number (contract ID) to use
         """
         self._phone = phone
         self._password = password
         self._sms_code = sms_code
-        self._contract_id = contract_id
+        self._login = login
         self._session = requests.Session()
         self._access_token: str | None = None
         self._token_expires_at: datetime | None = None
@@ -310,6 +320,7 @@ class ByFlyApiClient:
 
         if not result.access_token:
             raise ByFlyAuthError("Failed to obtain access token")
+        print(f"Access token: {result.access_token}")
 
         self._access_token = result.access_token
         if result.expires_in:
@@ -371,19 +382,7 @@ class ByFlyApiClient:
             if not self._access_token:
                 self.login()
             else:
-                self._refresh_token()
-
-    def _refresh_token(self) -> None:
-        """Refresh the access token."""
-        result = self._request_token()
-        if result.requires_2fa:
-            raise ByFlyAuthError("Token refresh requires 2FA, but no code provided")
-        if not result.access_token:
-            raise ByFlyAuthError("Failed to refresh token")
-
-        self._access_token = result.access_token
-        if result.expires_in:
-            self._token_expires_at = datetime.now() + timedelta(seconds=result.expires_in)
+                raise ByFlyError("Not authenticated. Call login() first.")
 
     def get_user(self) -> ApiUser:
         """Get current user profile."""
@@ -434,7 +433,13 @@ class ByFlyApiClient:
         return ApiContract.from_dict(contract_data)
 
     def get_primary_contract(self) -> ApiContract | None:
-        """Get the primary (first) contract."""
+        """Get the primary contract (uses _login if set, otherwise first)."""
+        if self._login:
+            contracts = self.get_contracts()
+            for contract in contracts:
+                if contract.login == self._login:
+                    return contract
+            return None
         contracts = self.get_contracts()
         return contracts[0] if contracts else None
 

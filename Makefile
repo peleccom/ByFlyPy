@@ -8,7 +8,7 @@ install: ## Install development dependencies
 	uv pip install -e ".[dev,plot]"
 
 test: ## Run tests
-	uv run pytest
+	uv run pytest --cov=src --cov-report=term-missing
 
 check: ## Run linter
 	@echo "Running linter..."

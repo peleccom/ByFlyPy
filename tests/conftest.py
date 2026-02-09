@@ -1,16 +1,16 @@
 """Pytest configuration for ByFlyPy tests."""
 
+from datetime import datetime, timedelta
+from decimal import Decimal
+
 import pytest
+
+from byflypy.models import Session
 
 
 @pytest.fixture
 def mock_session():
     """Create a mock session for testing."""
-    from datetime import datetime, timedelta
-    from decimal import Decimal
-
-    from byflypy.models import Session
-
     return Session(
         title="Test Session",
         begin=datetime(2026, 2, 1, 10, 0, 0),

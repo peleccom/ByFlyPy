@@ -13,6 +13,7 @@ from byflypy.api_client import (
     ByFlyApiClient,
     ByFlyAuthError,
     ByFlyError,
+    _to_decimal,
 )
 
 
@@ -304,3 +305,29 @@ class TestApiUser:
         assert user.phone == "375331234567"
         assert user.name == "Иванов Иван"
         assert user.contracts_count == 2
+
+
+class TestToDecimal:
+    """Test _to_decimal helper function."""
+
+    def test_to_decimal_none(self):
+        """Test converting None returns 0."""
+        assert _to_decimal(None) == Decimal("0")
+
+    def test_to_decimal_string(self):
+        """Test converting string."""
+        assert _to_decimal("10.50") == Decimal("10.50")
+        assert _to_decimal("0") == Decimal("0")
+
+    def test_to_decimal_float(self):
+        """Test converting float."""
+        assert _to_decimal(10.5) == Decimal("10.5")
+
+    def test_to_decimal_int(self):
+        """Test converting int."""
+        assert _to_decimal(10) == Decimal("10")
+
+    def test_to_decimal_invalid(self):
+        """Test converting invalid value returns 0."""
+        assert _to_decimal("invalid") == Decimal("0")
+        assert _to_decimal("") == Decimal("0")

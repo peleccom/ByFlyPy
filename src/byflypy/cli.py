@@ -6,9 +6,12 @@ import argparse
 import atexit
 import getpass
 import logging
+import os.path
 import sys
 
+from byflypy import __version__, html_client
 from byflypy.api_client import ByFly2FARequiredError, ByFlyApiClient
+from byflypy.database import DBManager, Table
 from byflypy.html_client import ByFlyError, ByFlyHtmlClient, get_exception_str
 from byflypy.models import TrafficDetails
 from byflypy.plotter import Plotter
@@ -40,8 +43,6 @@ def import_plot() -> None:
 def pass_from_db(login: str, db_filename: str, opt: argparse.Namespace) -> str | None:
     """Get password from database file."""
     try:
-        from byflypy.database import DBManager, Table
-
         db_manager = DBManager(Table(db_filename))
         res = db_manager.get_password(login)
         if res:
@@ -275,7 +276,7 @@ class Program:
         # API v2 path
         if opt.access_token:
             # Use token directly
-            client = ByFlyApiClient(None, None, opt.sms_code, opt.contract_id)
+            client = ByFlyApiClient(None, None, opt.sms_code, opt.login)
             client.set_access_token(opt.access_token)
         else:
             # Use account_phone/account_password for API v2
@@ -290,7 +291,7 @@ class Program:
                 print("Error: --account-phone and --account-password are required for API v2")
                 return 2
 
-            client = ByFlyApiClient(phone, password, opt.sms_code, opt.contract_id)
+            client = ByFlyApiClient(phone, password, opt.sms_code, opt.login)
 
             try:
                 client.login()
@@ -301,6 +302,9 @@ class Program:
                 client.set_sms_code(code)
                 try:
                     client.login()
+                    # Print access token after successful login
+                    if client.access_token:
+                        print(f"Access token: {client.access_token}")
                 except ByFly2FARequiredError:
                     print("Invalid or expired SMS code")
                     return 2
@@ -308,22 +312,29 @@ class Program:
                 print(get_exception_str(e))
                 return 2
 
-            # Check for multiple internet logins if --internet-login not specified
-            if not opt.internet_login:
-                contract = client.get_primary_contract()
-                if contract:
-                    logins = client.get_internet_logins(contract.id)
-                    if len(logins) > 1:
-                        print(
-                            "Error: Account has multiple internet logins. Please specify one with --internet-login:"
-                        )
-                        for login_info in logins:
-                            print(f"  - {login_info['login']} ({login_info['tariff_name']})")
-                        return 2
+        # If --login specified, validate it exists
+        if opt.login:
+            contracts = client.get_contracts()
+            valid_logins = [c.login for c in contracts]
+            if opt.login not in valid_logins:
+                print(f"Error: Login '{opt.login}' not found for this account")
+                print(f"Available logins: {', '.join(valid_logins)}")
+                return 2
 
-            # Print access token after successful login
-            if client.access_token:
-                print(f"Access token: {client.access_token}")
+        # If --login not specified, list all contracts and ask user to specify
+        if not opt.login:
+            contracts = client.get_contracts()
+            if len(contracts) == 1:
+                opt.login = contracts[0].login
+            elif len(contracts) == 0:
+                print("Error: No contracts found for this account")
+                return 2
+            else:
+                print("Available contracts:")
+                for contract in contracts:
+                    print(f"  - {contract.login}: {contract.name} (balance: {contract.balance})")
+                print("\nPlease specify one with -l/--login")
+                return 2
 
         ui = UI(client)
 
@@ -376,20 +387,6 @@ class Program:
             type=str,
             dest="account_password",
             help="Account password for API v2",
-        )
-        parser.add_argument(
-            "--internet-login",
-            action="store",
-            type=str,
-            dest="internet_login",
-            help="Internet login to use (required if account has multiple)",
-        )
-        parser.add_argument(
-            "--contract-id",
-            action="store",
-            type=str,
-            dest="contract_id",
-            help="Contract ID for API v2",
         )
         parser.add_argument(
             "-t",
@@ -473,7 +470,7 @@ class Program:
             action="store",
             type=str,
             dest="login",
-            help="login for API v1 (deprecated, use --account-phone for API v2)",
+            help="Login number (contract ID) for API v2",
         )
         parser.add_argument(
             "-p",
@@ -501,8 +498,6 @@ class Program:
             access_token=None,
             account_phone=None,
             account_password=None,
-            contract_id=None,
-            internet_login=None,
             login=None,
             password=None,
             check_list=None,
@@ -549,8 +544,6 @@ class Program:
 
     def list_checker_handler(self, opt: argparse.Namespace) -> None:
         """Handle list checker mode."""
-        import os.path
-
         try:
             with open(opt.check_list) as list_file:
                 for line in list_file:
@@ -605,8 +598,6 @@ class Program:
         opt = parser.parse_args()
 
         # Set debug mode for html_client
-        from byflypy import html_client
-
         html_client._DEBUG_ = opt.debug
         log_level = logging.DEBUG if opt.debug else logging.CRITICAL
         logging.basicConfig(stream=sys.stdout, level=log_level)
@@ -615,8 +606,6 @@ class Program:
             atexit.register(pause)
 
         if not opt.nologo and not opt.quiet:
-            from byflypy import __version__
-
             print(f"version: {__version__}")
 
         database_filename = opt.db if opt.db else _DEFAULT_DATABASE_FILENAME

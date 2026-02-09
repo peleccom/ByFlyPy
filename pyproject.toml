@@ -100,6 +100,7 @@ select = [
     "RUF",
     # tryceratops
     "TRY",
+    "PLC0415", # forbid lazy imports"
 ]
 ignore = [
     # LineTooLong

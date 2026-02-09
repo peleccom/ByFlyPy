@@ -1,14 +1,23 @@
 """Tests for ByFlyPy CLI."""
 
+import os
+from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
 import pytest
 
+from byflypy.api_client import ApiApplication, ApiContract, ApiTariff
 from byflypy.cli import (
     UI,
+    ByFlyApiClient,
     Program,
     print_traffic_table,
+)
+from byflypy.html_client import (
+    AccountPageParser,
+    PaymentsPageParser,
+    StatPageParser,
 )
 from byflypy.models import TrafficDetails, UserInfo
 
@@ -185,8 +194,7 @@ class TestProgram:
         args.account_phone = "375331234567"
         args.account_password = "test_pass"
         args.access_token = None
-        args.internet_login = None
-        args.contract_id = None
+        args.login = None
         args.sms_code = None
         args.quiet = False
         args.graph = None
@@ -212,50 +220,195 @@ class TestProgram:
         result = program.ui(mock_args_api_v1)
         assert result == 0
 
-    @patch("byflypy.cli.ByFlyApiClient")
-    def test_ui_api_v2(self, mock_client_class, program, mock_args_api_v2):
+    def test_ui_api_v2(self, program, mock_args_api_v2):
         """Test UI with API v2."""
-        mock_client = Mock()
-        mock_client.__class__.__name__ = "ByFlyApiClient"
-        mock_client.login.return_value = True
-        mock_client.access_token = "test_token"
 
-        mock_contract = Mock()
-        mock_contract.name = "Test User"
-        mock_contract.balance = Decimal("47.49")
-        mock_contract.applications = []
+        mock_app = ApiApplication(
+            id=1,
+            tariff_id=1,
+            price=Decimal("41.50"),
+            tariff=ApiTariff(
+                id=1,
+                name="ЯСНА 100",
+                description="",
+                price=Decimal("41.50"),
+                group_name=None,
+                is_archival=False,
+            ),
+            services=[],
+            can_change_tariff=True,
+            tariff_change_available_at=None,
+            available_tariffs=[],
+            btk_login="test_login",
+        )
 
-        mock_client.get_primary_contract.return_value = mock_contract
-        mock_client.get_internet_logins.return_value = [
-            {"login": "test", "application_id": 1, "tariff_name": "ЯСНА 100"}
-        ]
-        mock_client.get_traffic_details.return_value = None
+        mock_contract = ApiContract(
+            id=123,
+            user_id=1,
+            login="test_login",
+            balance=Decimal("47.49"),
+            status="active",
+            name="Test User",
+            addresses=None,
+            price=Decimal("41.50"),
+            terminate_in=30,
+            applications=[mock_app],
+            can_add_funds=True,
+            can_apply_promised_payment=True,
+            max_promised_payment_amount=Decimal("20.00"),
+        )
 
-        mock_client_class.return_value = mock_client
+        original_init = ByFlyApiClient.__init__
+        original_login = ByFlyApiClient.login
 
-        result = program.ui(mock_args_api_v2)
-        assert result == 0
+        def mock_init(self, phone=None, password=None, sms_code=None, login=None):
+            self._phone = phone
+            self._password = password
+            self._sms_code = sms_code
+            self._login = login
+            self._session = None
+            self._access_token = "test_token"
+            self._token_expires_at = None
+            self._user = None
 
-    @patch("byflypy.cli.ByFlyApiClient")
-    def test_ui_api_v2_multiple_logins_error(self, mock_client_class, program, mock_args_api_v2):
-        """Test UI with API v2 when multiple logins exist."""
-        mock_client = Mock()
-        mock_client.__class__.__name__ = "ByFlyApiClient"
-        mock_client.login.return_value = True
-        mock_client.access_token = "test_token"
+        def mock_login(self):
+            return True
 
-        mock_contract = Mock()
-        mock_contract.id = 123
-        mock_client.get_primary_contract.return_value = mock_contract
-        mock_client.get_internet_logins.return_value = [
-            {"login": "login1", "application_id": 1, "tariff_name": "ЯСНА 100"},
-            {"login": "login2", "application_id": 2, "tariff_name": "ЯСНА 200"},
-        ]
+        def mock_get_contracts(self):
+            return [mock_contract]
 
-        mock_client_class.return_value = mock_client
+        def mock_get_traffic_details(self, contract_id, application_id):
+            return None
 
-        result = program.ui(mock_args_api_v2)
-        assert result == 2
+        ByFlyApiClient.__init__ = mock_init
+        ByFlyApiClient.login = mock_login
+        ByFlyApiClient.get_contracts = mock_get_contracts
+        ByFlyApiClient.get_traffic_details = mock_get_traffic_details
+
+        try:
+            result = program.ui(mock_args_api_v2)
+            assert result == 0
+        finally:
+            ByFlyApiClient.__init__ = original_init
+            ByFlyApiClient.login = original_login
+            del ByFlyApiClient.get_contracts
+            del ByFlyApiClient.get_traffic_details
+
+    def test_ui_api_v2_multiple_logins_error(self, program, mock_args_api_v2):
+        """Test UI with API v2 when multiple contracts exist."""
+        mock_contract1 = ApiContract(
+            id=123,
+            user_id=1,
+            login="login1",
+            balance=Decimal("10.00"),
+            status="active",
+            name="Contract 1",
+            addresses=None,
+            price=Decimal("0"),
+            terminate_in=None,
+            applications=[],
+            can_add_funds=True,
+            can_apply_promised_payment=False,
+            max_promised_payment_amount=None,
+        )
+
+        mock_contract2 = ApiContract(
+            id=456,
+            user_id=1,
+            login="login2",
+            balance=Decimal("20.00"),
+            status="active",
+            name="Contract 2",
+            addresses=None,
+            price=Decimal("0"),
+            terminate_in=None,
+            applications=[],
+            can_add_funds=True,
+            can_apply_promised_payment=False,
+            max_promised_payment_amount=None,
+        )
+
+        original_init = ByFlyApiClient.__init__
+        original_login = ByFlyApiClient.login
+
+        def mock_init(self, phone=None, password=None, sms_code=None, login=None):
+            self._phone = phone
+            self._password = password
+            self._sms_code = sms_code
+            self._login = login
+            self._session = None
+            self._access_token = "test_token"
+            self._token_expires_at = None
+            self._user = None
+
+        def mock_login(self):
+            return True
+
+        def mock_get_contracts(self):
+            return [mock_contract1, mock_contract2]
+
+        ByFlyApiClient.__init__ = mock_init
+        ByFlyApiClient.login = mock_login
+        ByFlyApiClient.get_contracts = mock_get_contracts
+
+        try:
+            result = program.ui(mock_args_api_v2)
+            assert result == 2
+        finally:
+            ByFlyApiClient.__init__ = original_init
+            ByFlyApiClient.login = original_login
+            del ByFlyApiClient.get_contracts
+
+    def test_ui_api_v2_invalid_login(self, program, mock_args_api_v2):
+        """Test UI with API v2 when login is invalid."""
+        mock_args_api_v2.login = "invalid_login"
+
+        mock_contract1 = ApiContract(
+            id=123,
+            user_id=1,
+            login="login1",
+            balance=Decimal("10.00"),
+            status="active",
+            name="Contract 1",
+            addresses=None,
+            price=Decimal("0"),
+            terminate_in=None,
+            applications=[],
+            can_add_funds=True,
+            can_apply_promised_payment=False,
+            max_promised_payment_amount=None,
+        )
+
+        original_init = ByFlyApiClient.__init__
+        original_login = ByFlyApiClient.login
+
+        def mock_init(self, phone=None, password=None, sms_code=None, login=None):
+            self._phone = phone
+            self._password = password
+            self._sms_code = sms_code
+            self._login = login
+            self._session = None
+            self._access_token = "test_token"
+            self._token_expires_at = None
+            self._user = None
+
+        def mock_login(self):
+            return True
+
+        def mock_get_contracts(self):
+            return [mock_contract1]
+
+        ByFlyApiClient.__init__ = mock_init
+        ByFlyApiClient.login = mock_login
+        ByFlyApiClient.get_contracts = mock_get_contracts
+
+        try:
+            result = program.ui(mock_args_api_v2)
+            assert result == 2
+        finally:
+            ByFlyApiClient.__init__ = original_init
+            ByFlyApiClient.login = original_login
+            del ByFlyApiClient.get_contracts
 
 
 class TestArgumentParser:
@@ -283,20 +436,18 @@ class TestArgumentParser:
     def test_api_v2_arguments(self, program):
         """Test API v2 argument parsing."""
         parser = program.setup_cmd_parser()
-        args = parser.parse_args(
-            [
-                "--account-phone",
-                "375331234567",
-                "--account-password",
-                "pass",
-                "--internet-login",
-                "mylogin",
-            ]
-        )
+        args = parser.parse_args([
+            "-l",
+            "123456789",
+            "--account-phone",
+            "375331234567",
+            "--account-password",
+            "pass",
+        ])
 
+        assert args.login == "123456789"
         assert args.account_phone == "375331234567"
         assert args.account_password == "pass"
-        assert args.internet_login == "mylogin"
 
     def test_graph_arguments(self, program):
         """Test graph argument parsing."""
@@ -319,3 +470,62 @@ class TestArgumentParser:
         parser = program.setup_cmd_parser()
         args = parser.parse_args(["-d"])
         assert args.debug is True
+
+
+class TestHTMLClientWithRealData:
+    """Test HTML client with real testdata HTML files."""
+
+    def test_stat_page_parsing(self):
+        """Test parsing statistic_page.html for session data."""
+        html_file = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "testdata", "statistic_page.html"
+        )
+        with open(html_file, encoding="utf-8") as f:
+            html = f.read()
+
+        sessions = StatPageParser.parse_html(html)
+        assert len(sessions) == 1
+        session = sessions[0]
+        assert session.title == "Длительность сессии"
+        assert session.duration == timedelta(days=2, hours=21, minutes=0, seconds=21)
+        assert session.cost == Decimal("0")
+        assert session.ingoing == pytest.approx(13855.204)
+        assert session.outgoing == pytest.approx(680.559)
+
+    def test_payments_page_parsing(self):
+        """Test parsing payments_page.html for claim payments."""
+        html_file = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "testdata", "payments_page.html"
+        )
+        with open(html_file, encoding="utf-8") as f:
+            html = f.read()
+
+        claim_payments = PaymentsPageParser.parse_claim_payments(html)
+        assert len(claim_payments) == 3
+        assert claim_payments[0].is_active is True
+        assert claim_payments[1].is_active is False
+        assert claim_payments[2].is_active is False
+
+    def test_empty_payments_page_parsing(self):
+        """Test parsing empty payments page."""
+        html_file = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "testdata", "payments_empty_page.html"
+        )
+        with open(html_file, encoding="utf-8") as f:
+            html = f.read()
+
+        claim_payments = PaymentsPageParser.parse_claim_payments(html)
+        assert len(claim_payments) == 0
+
+    def test_account_page_parsing(self):
+        """Test parsing account_page.html for user info."""
+        html_file = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "testdata", "account_page.html"
+        )
+        with open(html_file, encoding="utf-8") as f:
+            html = f.read()
+
+        user_info = AccountPageParser.parse_user_info(html)
+        assert user_info is not None
+        assert "Иванов" in user_info.full_name or len(user_info.full_name) > 0
+        assert user_info.balance > 0
