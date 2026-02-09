@@ -36,6 +36,7 @@ class TestDBManager:
 
     def teardown_method(self):
         """Clean up after tests."""
+        self._table.close()
         self._table = None
         self.db_manager = None
 
@@ -81,6 +82,7 @@ class TestTable:
 
     def teardown_method(self):
         """Clean up after tests."""
+        self._table.close()
         self._table = None
 
     def test_create_table(self):
@@ -165,31 +167,31 @@ class TestDatabaseIntegration:
 
     def test_save_and_retrieve_multiple(self):
         """Test saving and retrieving multiple credentials."""
-        db_manager = DBManager(Table(self.DB_FILENAME))
+        with Table(self.DB_FILENAME) as table:
+            db_manager = DBManager(table)
+            db_manager.save_password("user1", "pass1")
+            db_manager.save_password("user2", "pass2")
+            db_manager.save_password("user3", "pass3")
 
-        db_manager.save_password("user1", "pass1")
-        db_manager.save_password("user2", "pass2")
-        db_manager.save_password("user3", "pass3")
-
-        assert db_manager.get_password("user1")[1] == "pass1"
-        assert db_manager.get_password("user2")[1] == "pass2"
-        assert db_manager.get_password("user3")[1] == "pass3"
+            assert db_manager.get_password("user1")[1] == "pass1"
+            assert db_manager.get_password("user2")[1] == "pass2"
+            assert db_manager.get_password("user3")[1] == "pass3"
 
     def test_file_based_operations(self):
         """Test database operations with actual file."""
-        table = Table(self.DB_FILENAME)
-        table.create_table_if_not_exists()
+        with Table(self.DB_FILENAME) as table:
+            table.create_table_if_not_exists()
 
-        record = Record("testuser", "testpass")
-        table.add(record)
+            record = Record("testuser", "testpass")
+            table.add(record)
 
-        assert len(table.list()) == 1
-        retrieved = table.get("testuser")
-        assert retrieved is not None
-        assert retrieved.pk == "testuser"
+            assert len(table.list()) == 1
+            retrieved = table.get("testuser")
+            assert retrieved is not None
+            assert retrieved.pk == "testuser"
 
-        table.delete("testuser")
-        assert len(table.list()) == 0
+            table.delete("testuser")
+            assert len(table.list()) == 0
 
 
 class TestLogToFile:

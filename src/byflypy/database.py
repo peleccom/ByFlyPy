@@ -28,6 +28,18 @@ class Table:
         self.db_filename = db_filename
         self._connection: sqlite3.Connection | None = None
 
+    def __del__(self) -> None:
+        """Ensure connection is closed when object is destroyed."""
+        self.close()
+
+    def __enter__(self) -> Table:
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Context manager exit - ensures connection is closed."""
+        self.close()
+
     def _get_connection(self) -> sqlite3.Connection:
         if self._connection is None:
             self._connection = sqlite3.connect(self.db_filename)

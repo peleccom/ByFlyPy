@@ -25,15 +25,11 @@ __all__ = [
     "ApiUser",
     "ByFly2FARequiredError",
     "ByFlyApiClient",
-    "ByFlySMSCodeExpiredError",
 ]
 
 
 class ByFly2FARequiredError(Exception):
     """Raised when SMS 2FA is required."""
-
-
-class ByFlySMSCodeExpiredError(Exception):
     """Raised when SMS code has expired."""
 
 
