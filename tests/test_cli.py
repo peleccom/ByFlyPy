@@ -194,7 +194,7 @@ class TestProgram:
         args.account_phone = "375331234567"
         args.account_password = "test_pass"
         args.access_token = None
-        args.login = None
+        args.btk_id = None
         args.sms_code = None
         args.quiet = False
         args.graph = None
@@ -239,13 +239,14 @@ class TestProgram:
             can_change_tariff=True,
             tariff_change_available_at=None,
             available_tariffs=[],
-            btk_login="test_login",
+            btk_login="",
         )
 
         mock_contract = ApiContract(
             id=123,
             user_id=1,
             login="test_login",
+            btk_id="test_btk_id",
             balance=Decimal("47.49"),
             status="active",
             name="Test User",
@@ -300,6 +301,7 @@ class TestProgram:
             id=123,
             user_id=1,
             login="login1",
+            btk_id="btk1",
             balance=Decimal("10.00"),
             status="active",
             name="Contract 1",
@@ -316,6 +318,7 @@ class TestProgram:
             id=456,
             user_id=1,
             login="login2",
+            btk_id="btk2",
             balance=Decimal("20.00"),
             status="active",
             name="Contract 2",
@@ -360,13 +363,14 @@ class TestProgram:
             del ByFlyApiClient.get_contracts
 
     def test_ui_api_v2_invalid_login(self, program, mock_args_api_v2):
-        """Test UI with API v2 when login is invalid."""
-        mock_args_api_v2.login = "invalid_login"
+        """Test UI with API v2 when btk_id is invalid."""
+        mock_args_api_v2.btk_id = "invalid_btk_id"
 
         mock_contract1 = ApiContract(
             id=123,
             user_id=1,
             login="login1",
+            btk_id="btk123",
             balance=Decimal("10.00"),
             status="active",
             name="Contract 1",
@@ -430,7 +434,7 @@ class TestArgumentParser:
         args = parser.parse_args(["--api-v1", "-l", "test", "-p", "pass"])
 
         assert args.use_api_v1 is True
-        assert args.login == "test"
+        assert args.btk_id == "test"
         assert args.password == "pass"
 
     def test_api_v2_arguments(self, program):
@@ -445,7 +449,7 @@ class TestArgumentParser:
             "pass",
         ])
 
-        assert args.login == "123456789"
+        assert args.btk_id == "123456789"
         assert args.account_phone == "375331234567"
         assert args.account_password == "pass"
 

@@ -158,6 +158,7 @@ class ApiContract:
     id: int
     user_id: int
     login: str
+    btk_id: str
     balance: Decimal
     status: str
     name: str
@@ -184,6 +185,7 @@ class ApiContract:
             id=data.get("id", 0),
             user_id=data.get("user_id", 0),
             login=data.get("login", ""),
+            btk_id=data.get("btk_id", ""),
             balance=balance,
             status=data.get("status", ""),
             name=data.get("name", ""),

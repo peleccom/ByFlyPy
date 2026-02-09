@@ -276,7 +276,7 @@ class Program:
         # API v2 path
         if opt.access_token:
             # Use token directly
-            client = ByFlyApiClient(None, None, opt.sms_code, opt.login)
+            client = ByFlyApiClient(None, None, opt.sms_code, None)
             client.set_access_token(opt.access_token)
         else:
             # Use account_phone/account_password for API v2
@@ -291,7 +291,7 @@ class Program:
                 print("Error: --account-phone and --account-password are required for API v2")
                 return 2
 
-            client = ByFlyApiClient(phone, password, opt.sms_code, opt.login)
+            client = ByFlyApiClient(phone, password, opt.sms_code, None)
 
             try:
                 client.login()
@@ -312,28 +312,35 @@ class Program:
                 print(get_exception_str(e))
                 return 2
 
-        # If --login specified, validate it exists
-        if opt.login:
+        # If --btk-id specified, validate it exists and set the contract
+        if opt.btk_id:
             contracts = client.get_contracts()
-            valid_logins = [c.login for c in contracts]
-            if opt.login not in valid_logins:
-                print(f"Error: Login '{opt.login}' not found for this account")
-                print(f"Available logins: {', '.join(valid_logins)}")
+            btk_ids = []
+            for contract in contracts:
+                btk_ids.append(contract.btk_id)
+                if contract.btk_id == opt.btk_id:
+                    client._login = contract.login
+            if not client._login:
+                print(f"Error: Btk ID '{opt.btk_id}' not found for this account")
+                print(f"Available Btk IDs: {', '.join(btk_ids)}")
                 return 2
 
-        # If --login not specified, list all contracts and ask user to specify
-        if not opt.login:
+        # If --btk-id not specified, list all available Btk IDs and ask user to specify
+        if not opt.btk_id:
             contracts = client.get_contracts()
-            if len(contracts) == 1:
-                opt.login = contracts[0].login
-            elif len(contracts) == 0:
-                print("Error: No contracts found for this account")
+            btk_entries = [(c.btk_id, c.name, c.balance, c.login) for c in contracts if c.btk_id]
+
+            if len(btk_entries) == 0:
+                print("Error: No internet logins found for this account")
                 return 2
+            elif len(btk_entries) == 1:
+                opt.btk_id = btk_entries[0][0]
+                client._login = btk_entries[0][3]
             else:
-                print("Available contracts:")
-                for contract in contracts:
-                    print(f"  - {contract.login}: {contract.name} (balance: {contract.balance})")
-                print("\nPlease specify one with -l/--login")
+                print("Available internet logins (Btk ID):")
+                for btk_id, name, balance, _ in btk_entries:
+                    print(f"  - {btk_id}: {name} (balance: {balance})")
+                print("\nPlease specify one with -l/--btk-id")
                 return 2
 
         ui = UI(client)
@@ -466,11 +473,11 @@ class Program:
         # Legacy API v1 options
         parser.add_argument(
             "-l",
-            "--login",
+            "--btk-id",
             action="store",
             type=str,
-            dest="login",
-            help="Login number (contract ID) for API v2",
+            dest="btk_id",
+            help="Btk ID (internet login) for API v2",
         )
         parser.add_argument(
             "-p",
