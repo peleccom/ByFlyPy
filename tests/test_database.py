@@ -3,6 +3,8 @@
 import os
 import tempfile
 
+import pytest
+
 from byflypy import html_client
 from byflypy.database import DBManager, Record, Table
 from byflypy.html_client import log_to_file
@@ -24,150 +26,137 @@ class TestRecord:
         assert "test" in repr(record)
 
 
+@pytest.fixture
+def table():
+    """Provide a Table instance for tests."""
+    _table = Table(":memory:")
+    yield _table
+    _table.close()
+
+
+@pytest.fixture
+def db_manager(table):
+    """Provide a DBManager instance for tests."""
+    return DBManager(table)
+
+
 class TestDBManager:
     """Test DBManager class for database operations."""
 
-    FILENAME = ":memory:"
-
-    def setup_method(self):
-        """Set up test fixtures."""
-        self._table = Table(self.FILENAME)
-        self.db_manager = DBManager(self._table)
-
-    def teardown_method(self):
-        """Clean up after tests."""
-        self._table.close()
-        self._table = None
-        self.db_manager = None
-
-    def test_save_password(self):
+    def test_save_password(self, db_manager):
         """Test saving password to database."""
-        self.db_manager.save_password("user1", "pass123")
-        result = self.db_manager.get_password("user1")
+        db_manager.save_password("user1", "pass123")
+        result = db_manager.get_password("user1")
         assert result is not None
         assert result[0] == "user1"
         assert result[1] == "pass123"
 
-    def test_update_password(self):
+    def test_update_password(self, db_manager):
         """Test updating existing password."""
-        self.db_manager.save_password("user1", "pass123")
-        self.db_manager.save_password("user1", "newpass")
-        result = self.db_manager.get_password("user1")
+        db_manager.save_password("user1", "pass123")
+        db_manager.save_password("user1", "newpass")
+        result = db_manager.get_password("user1")
         assert result[1] == "newpass"
 
-    def test_get_password_non_existent(self):
+    def test_get_password_non_existent(self, db_manager):
         """Test getting password for non-existent user."""
-        result = self.db_manager.get_password("nonexistent")
+        result = db_manager.get_password("nonexistent")
         assert result is None
 
-    def test_delete_password(self):
+    def test_delete_password(self, db_manager):
         """Test deleting password from database."""
-        self.db_manager.save_password("user1", "pass123")
-        assert self.db_manager.delete_password("user1") is True
-        assert self.db_manager.get_password("user1") is None
+        db_manager.save_password("user1", "pass123")
+        assert db_manager.delete_password("user1") is True
+        assert db_manager.get_password("user1") is None
 
-    def test_delete_non_existent(self):
+    def test_delete_non_existent(self, db_manager):
         """Test deleting non-existent password."""
-        assert self.db_manager.delete_password("nonexistent") is False
+        assert db_manager.delete_password("nonexistent") is False
 
 
 class TestTable:
     """Test Table class for database operations."""
 
-    FILENAME = ":memory:"
-
-    def setup_method(self):
-        """Set up test fixtures."""
-        self._table = Table(self.FILENAME)
-
-    def teardown_method(self):
-        """Clean up after tests."""
-        self._table.close()
-        self._table = None
-
-    def test_create_table(self):
+    def test_create_table(self, table):
         """Test table creation."""
-        assert self._table.db_filename == ":memory:"
+        assert table.db_filename == ":memory:"
 
-    def test_execute_query(self):
+    def test_execute_query(self, table):
         """Test executing a query."""
-        self._table.execute("CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY)")
-        self._table.execute("INSERT INTO test (id) VALUES (1)")
-        cursor = self._table.execute("SELECT id FROM test")
+        table.execute("CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY)")
+        table.execute("INSERT INTO test (id) VALUES (1)")
+        cursor = table.execute("SELECT id FROM test")
         result = cursor.fetchone()
         assert result[0] == 1
 
-    def test_commit(self):
+    def test_commit(self, table):
         """Test commit functionality."""
-        self._table.execute("CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY)")
-        self._table.execute("INSERT INTO test (id) VALUES (1)")
-        self._table.commit()
-        cursor = self._table.execute("SELECT id FROM test")
+        table.execute("CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY)")
+        table.execute("INSERT INTO test (id) VALUES (1)")
+        table.commit()
+        cursor = table.execute("SELECT id FROM test")
         assert cursor.fetchone() is not None
 
-    def test_close(self):
+    def test_close(self, table):
         """Test close functionality."""
-        self._table.close()
-        assert self._table._connection is None
+        table.close()
+        assert table._connection is None
 
-    def test_list(self):
+    def test_list(self, table):
         """Test listing all records."""
-        self._table.create_table_if_not_exists()
-        self._table.add(Record("user1", "pass1"))
-        self._table.add(Record("user2", "pass2"))
-        records = self._table.list()
+        table.create_table_if_not_exists()
+        table.add(Record("user1", "pass1"))
+        table.add(Record("user2", "pass2"))
+        records = table.list()
         assert len(records) == 2
 
-    def test_add(self):
+    def test_add(self, table):
         """Test adding a record to the table."""
-        self._table.create_table_if_not_exists()
-        assert len(self._table.list()) == 0
+        table.create_table_if_not_exists()
+        assert len(table.list()) == 0
         record = Record("a", "b")
-        self._table.add(record)
-        assert len(self._table.list()) == 1
+        table.add(record)
+        assert len(table.list()) == 1
 
-    def test_get(self):
+    def test_get(self, table):
         """Test getting a record by primary key."""
-        self._table.create_table_if_not_exists()
-        self._table.add(Record("user1", "pass1"))
-        record = self._table.get("user1")
+        table.create_table_if_not_exists()
+        table.add(Record("user1", "pass1"))
+        record = table.get("user1")
         assert record is not None
         assert record.pk == "user1"
         assert record.password == "pass1"
 
-    def test_get_non_exists(self):
+    def test_get_non_exists(self, table):
         """Test getting a non-existent record."""
-        self._table.create_table_if_not_exists()
-        record = self._table.get("nonexistent")
+        table.create_table_if_not_exists()
+        record = table.get("nonexistent")
         assert record is None
 
-    def test_delete(self):
+    def test_delete(self, table):
         """Test deleting a record from the table."""
-        self._table.create_table_if_not_exists()
-        self._table.add(Record("user1", "pass1"))
-        assert len(self._table.list()) == 1
-        self._table.delete("user1")
-        assert len(self._table.list()) == 0
+        table.create_table_if_not_exists()
+        table.add(Record("user1", "pass1"))
+        assert len(table.list()) == 1
+        table.delete("user1")
+        assert len(table.list()) == 0
+
+
+@pytest.fixture
+def db_filename():
+    """Provide a temporary database filename."""
+    filename = "test_byflypy.db"
+    yield filename
+    if os.path.exists(filename):
+        os.remove(filename)
 
 
 class TestDatabaseIntegration:
     """Integration tests for database with real file."""
 
-    DB_FILENAME = "test_byflypy.db"
-
-    def setup_method(self):
-        """Set up test fixtures."""
-        if os.path.exists(self.DB_FILENAME):
-            os.remove(self.DB_FILENAME)
-
-    def teardown_method(self):
-        """Clean up after tests."""
-        if os.path.exists(self.DB_FILENAME):
-            os.remove(self.DB_FILENAME)
-
-    def test_save_and_retrieve_multiple(self):
+    def test_save_and_retrieve_multiple(self, db_filename):
         """Test saving and retrieving multiple credentials."""
-        with Table(self.DB_FILENAME) as table:
+        with Table(db_filename) as table:
             db_manager = DBManager(table)
             db_manager.save_password("user1", "pass1")
             db_manager.save_password("user2", "pass2")
@@ -177,9 +166,9 @@ class TestDatabaseIntegration:
             assert db_manager.get_password("user2")[1] == "pass2"
             assert db_manager.get_password("user3")[1] == "pass3"
 
-    def test_file_based_operations(self):
+    def test_file_based_operations(self, db_filename):
         """Test database operations with actual file."""
-        with Table(self.DB_FILENAME) as table:
+        with Table(db_filename) as table:
             table.create_table_if_not_exists()
 
             record = Record("testuser", "testpass")
