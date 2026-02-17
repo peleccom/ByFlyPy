@@ -282,7 +282,7 @@ class Program:
         else:
             # Use account_phone/account_password for API v2
             phone = opt.account_phone
-            password = opt.account_password
+            password = opt.password
 
             # Strip leading + from phone number if present
             if phone and phone.startswith("+"):
@@ -375,126 +375,155 @@ class Program:
 
     def setup_cmd_parser(self) -> argparse.ArgumentParser:
         """Set up command-line argument parser."""
-        parser = argparse.ArgumentParser(description="Проверка баланса ByFly", prog="byfly")
-        parser.add_argument(
-            "-i",
-            action="store_true",
-            dest="interactive",
-            help="enable interactive mode",
+        parser = argparse.ArgumentParser(
+            description="ByFly balance checker - Check your ByFly internet account balance and statistics",
+            prog="byfly",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
         )
-        parser.add_argument(
-            "--account-phone",
-            action="store",
-            type=str,
-            dest="account_phone",
-            help="Account phone number for API v2 (e.g., 375331234567, + will be stripped)",
-        )
-        parser.add_argument(
-            "--account-password",
-            action="store",
-            type=str,
-            dest="account_password",
-            help="Account password for API v2",
-        )
-        parser.add_argument(
+
+        auth_group = parser.add_argument_group("Authentication")
+        auth_token = auth_group.add_mutually_exclusive_group(required=False)
+        auth_token.add_argument(
             "-t",
             "--access-token",
             action="store",
             type=str,
             dest="access_token",
-            help="Access token for API v2",
+            help="Access token for API v2 (use instead of phone/password)",
         )
+        auth_token.add_argument(
+            "--account-phone",
+            action="store",
+            type=str,
+            dest="account_phone",
+            help="Account phone number for API v2 (e.g., 375331234567)",
+            metavar="PHONE",
+        )
+        auth_group.add_argument(
+            "-p",
+            "--password",
+            action="store",
+            type=str,
+            dest="password",
+            help="Password for API v1 or API v2 (will prompt if not provided)",
+            metavar="PASSWORD",
+        )
+
+        api_v1_group = parser.add_argument_group("Authentication (API v1 - Legacy/Deprecated)")
+        api_v1_group.add_argument(
+            "-l",
+            "--login",
+            action="store",
+            type=str,
+            dest="login",
+            help="Login/BTK ID for API v1 (legacy)",
+            metavar="LOGIN",
+        )
+
         parser.add_argument(
+            "--api-v1",
+            "-1",
+            action="store_true",
+            dest="use_api_v1",
+            help="Use old HTML-based API v1 instead of API v2 (deprecated)",
+        )
+
+        contract_group = parser.add_argument_group("Contract Selection (API v2)")
+        contract_group.add_argument(
+            "--btk-id",
+            action="store",
+            type=str,
+            dest="btk_id",
+            help="Internet login ID (BTK ID) for API v2 (auto-detect if only one exists)",
+            metavar="BTK_ID",
+        )
+        contract_group.add_argument(
+            "--sms-code",
+            action="store",
+            type=str,
+            dest="sms_code",
+            help="SMS 2FA code for API v2 (prompted if needed)",
+            metavar="CODE",
+        )
+
+        output_group = parser.add_argument_group("Output Options")
+        output_group.add_argument(
+            "-q",
+            "--quiet",
+            action="store_true",
+            dest="quiet",
+            help="Print only balance and exit",
+        )
+        output_group.add_argument(
             "-g",
             "--graph",
             action="store",
             dest="graph",
             type=str,
             choices=["traf", "time"],
-            help="plot a graph. Parameters MUST BE traf or time",
+            help="Show graph: traf (traffic allocation) or time (time allocation)",
+            metavar="TYPE",
         )
-        parser.add_argument(
-            "--previous",
-            action="store_true",
-            dest="previous_period",
-            help="get statistic for previous month",
-            default=False,
-        )
-        parser.add_argument(
+        output_group.add_argument(
             "-s",
             "--save",
             action="store",
             type=str,
             dest="imagefilename",
-            help="save graph to file",
+            help="Save graph to file (use with -g/--graph)",
+            metavar="FILENAME",
         )
-        parser.add_argument(
-            "-n",
-            "--nologo",
+        output_group.add_argument(
+            "--previous",
             action="store_true",
-            dest="nologo",
-            help="don't show logo at startup",
+            dest="previous_period",
+            help="Get statistics for previous month (use with -g/--graph)",
         )
-        parser.add_argument(
-            "--pause",
+
+        misc_group = parser.add_argument_group("Miscellaneous Options")
+        misc_group.add_argument(
+            "-i",
+            "--interactive",
             action="store_true",
-            dest="pause",
-            default=False,
-            help="don't close console window immediately",
+            dest="interactive",
+            help="Run in interactive mode (prompt for login/password)",
         )
-        parser.add_argument(
+        misc_group.add_argument(
+            "--list",
+            type=str,
+            dest="check_list",
+            metavar="FILE",
+            help="Check accounts from file (format: login:password per line)",
+        )
+        misc_group.add_argument(
             "-d",
             "--debug",
             action="store_true",
             dest="debug",
-            help="enable debug",
-            default=False,
+            help="Enable debug output",
         )
-        parser.add_argument("--db", action="store", type=str, dest="db", help="database filename")
-        parser.add_argument(
-            "-q",
+        misc_group.add_argument(
+            "--pause",
             action="store_true",
-            dest="quiet",
-            help="print balance and exit",
-            default=False,
+            dest="pause",
+            help="Keep console open after execution (Windows)",
         )
-        parser.add_argument(
-            "--api-v1",
+        misc_group.add_argument(
+            "-n",
+            "--nologo",
             action="store_true",
-            dest="use_api_v1",
-            help="use old HTML-based API (deprecated)",
+            dest="nologo",
+            help="Hide version information at startup",
         )
-        parser.add_argument(
-            "--sms-code",
+        misc_group.add_argument(
+            "--db",
             action="store",
             type=str,
-            dest="sms_code",
-            help="SMS 2FA code for new API",
+            dest="db",
+            help="Path to database file for storing credentials",
+            metavar="FILE",
         )
-        # Legacy API v1 options
-        parser.add_argument(
-            "-l",
-            "--btk-id",
-            action="store",
-            type=str,
-            dest="btk_id",
-            help="Btk ID (internet login) for API v2",
-        )
-        parser.add_argument(
-            "-p",
-            "--password",
-            action="store",
-            type=str,
-            dest="password",
-            help="password for API v1 (deprecated, use --account-password for API v2)",
-        )
-        parser.add_argument(
-            "--list",
-            type=str,
-            dest="check_list",
-            metavar="<filename>",
-            help="check accounts in file. Each line of file must be login:password",
-        )
+
         parser.set_defaults(
             interactive=False,
             graph=None,
@@ -505,7 +534,6 @@ class Program:
             sms_code=None,
             access_token=None,
             account_phone=None,
-            account_password=None,
             login=None,
             password=None,
             check_list=None,
@@ -586,13 +614,13 @@ class Program:
                 if not opt.password:
                     opt.password = getpass.getpass("Password:", echo_char="*")
         else:
-            # For API v2, we need account_phone and account_password
+            # For API v2, we need account_phone and password
             if not opt.access_token:
                 if not opt.account_phone:
                     print("Error: --account-phone is required for API v2")
                     return 2
-                if not opt.account_password:
-                    opt.account_password = getpass.getpass("Account password:", echo_char="*")
+                if not opt.password:
+                    opt.password = getpass.getpass("Password:", echo_char="*")
         return self.ui(opt)
 
     def main(self) -> None:

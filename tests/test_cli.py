@@ -192,7 +192,7 @@ class TestProgram:
         args = Mock()
         args.use_api_v1 = False
         args.account_phone = "375331234567"
-        args.account_password = "test_pass"
+        args.password = "test_pass"
         args.access_token = None
         args.btk_id = None
         args.sms_code = None
@@ -431,27 +431,27 @@ class TestArgumentParser:
     def test_api_v1_arguments(self, program):
         """Test API v1 argument parsing."""
         parser = program.setup_cmd_parser()
-        args = parser.parse_args(["--api-v1", "-l", "test", "-p", "pass"])
+        args = parser.parse_args(["--api-v1", "--login", "test", "--password", "pass"])
 
         assert args.use_api_v1 is True
-        assert args.btk_id == "test"
+        assert args.login == "test"
         assert args.password == "pass"
 
     def test_api_v2_arguments(self, program):
         """Test API v2 argument parsing."""
         parser = program.setup_cmd_parser()
         args = parser.parse_args([
-            "-l",
+            "--btk-id",
             "123456789",
             "--account-phone",
             "375331234567",
-            "--account-password",
+            "--password",
             "pass",
         ])
 
         assert args.btk_id == "123456789"
         assert args.account_phone == "375331234567"
-        assert args.account_password == "pass"
+        assert args.password == "pass"
 
     def test_graph_arguments(self, program):
         """Test graph argument parsing."""
