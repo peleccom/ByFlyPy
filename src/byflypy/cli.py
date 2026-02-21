@@ -11,7 +11,7 @@ import sys
 
 from byflypy import __version__
 from byflypy.clients import html_client
-from byflypy.clients.api_client import ByFly2FARequiredError, ByFlyApiClient
+from byflypy.clients.api_client import ByFly2FARequiredError, ByFlyApiClient, TokenManager
 from byflypy.clients.html_client import ByFlyError, ByFlyHtmlClient, get_exception_str
 from byflypy.database import DBManager, Table
 from byflypy.models import TrafficDetails
@@ -275,24 +275,29 @@ class Program:
             return 0
 
         # API v2 path
-        if opt.access_token:
-            # Use token directly
-            client = ByFlyApiClient(None, None, opt.sms_code, None)
-            client.set_access_token(opt.access_token)
-        else:
-            # Use account_phone/account_password for API v2
+        phone = None
+
+        # Normalize phone number (add + prefix if not present)
+        if opt.account_phone:
             phone = opt.account_phone
-            password = opt.password
+            if phone and not phone.startswith("+"):
+                phone = "+" + phone
 
-            # Strip leading + from phone number if present
-            if phone and phone.startswith("+"):
-                phone = phone[1:]
-
-            if not phone or not password:
-                print("Error: --account-phone and --account-password are required for API v2")
-                return 2
-
-            client = ByFlyApiClient(phone, password, opt.sms_code, None)
+        # Use token from command line, file, or login
+        if opt.access_token:
+            client = ByFlyApiClient(
+                phone=opt.account_phone, password=None, sms_code=None, login=opt.login
+            )
+            client.set_access_token(opt.access_token)
+        elif phone:
+            token_manager = TokenManager()
+            client = ByFlyApiClient(
+                phone=phone,
+                password=opt.password,
+                sms_code=opt.sms_code,
+                login=opt.login,
+                token_manager=token_manager,
+            )
 
             try:
                 client.login()
@@ -303,9 +308,6 @@ class Program:
                 client.set_sms_code(code)
                 try:
                     client.login()
-                    # Print access token after successful login
-                    if client.access_token:
-                        print(f"Access token: {client.access_token}")
                 except ByFly2FARequiredError:
                     print("Invalid or expired SMS code")
                     return 2
@@ -313,21 +315,26 @@ class Program:
                 print(get_exception_str(e))
                 return 2
 
+            print(f"Access token: {client.access_token}")
+        else:
+            print("Error: --account-phone or --access-token is required for API v2")
+            return 2
+
         # If --btk-id specified, validate it exists and set the contract
-        if opt.btk_id:
+        if opt.login:
             contracts = client.get_contracts()
             btk_ids = []
             for contract in contracts:
                 btk_ids.append(contract.btk_id)
-                if contract.btk_id == opt.btk_id:
+                if contract.btk_id == opt.login:
                     client._login = contract.login
             if not client._login:
-                print(f"Error: Btk ID '{opt.btk_id}' not found for this account")
+                print(f"Error: Btk ID '{opt.login}' not found for this account")
                 print(f"Available Btk IDs: {', '.join(btk_ids)}")
                 return 2
 
         # If --btk-id not specified, list all available Btk IDs and ask user to specify
-        if not opt.btk_id:
+        if not opt.login:
             contracts = client.get_contracts()
             btk_entries = [(c.btk_id, c.name, c.balance, c.login) for c in contracts if c.btk_id]
 
@@ -335,13 +342,13 @@ class Program:
                 print("Error: No internet logins found for this account")
                 return 2
             elif len(btk_entries) == 1:
-                opt.btk_id = btk_entries[0][0]
+                opt.login = btk_entries[0][0]
                 client._login = btk_entries[0][3]
             else:
                 print("Available internet logins (Btk ID):")
                 for btk_id, name, balance, _ in btk_entries:
                     print(f"  - {btk_id}: {name} (balance: {balance})")
-                print("\nPlease specify one with -l/--btk-id")
+                print("\nPlease specify one with --login")
                 return 2
 
         ui = UI(client)
@@ -393,6 +400,7 @@ class Program:
         )
         auth_token.add_argument(
             "--account-phone",
+            "--phone",
             action="store",
             type=str,
             dest="account_phone",
@@ -413,10 +421,11 @@ class Program:
         api_v1_group.add_argument(
             "-l",
             "--login",
+            "--btk-id",
             action="store",
             type=str,
             dest="login",
-            help="Login/BTK ID for API v1 (legacy)",
+            help="Login(BTK ID) for API v1 (legacy)",
             metavar="LOGIN",
         )
 
@@ -429,14 +438,6 @@ class Program:
         )
 
         contract_group = parser.add_argument_group("Contract Selection (API v2)")
-        contract_group.add_argument(
-            "--btk-id",
-            action="store",
-            type=str,
-            dest="btk_id",
-            help="Internet login ID (BTK ID) for API v2 (auto-detect if only one exists)",
-            metavar="BTK_ID",
-        )
         contract_group.add_argument(
             "--sms-code",
             action="store",
@@ -615,12 +616,9 @@ class Program:
                     opt.password = getpass.getpass("Password:", echo_char="*")
         else:
             # For API v2, we need account_phone and password
-            if not opt.access_token:
-                if not opt.account_phone:
-                    print("Error: --account-phone is required for API v2")
-                    return 2
-                if not opt.password:
-                    opt.password = getpass.getpass("Password:", echo_char="*")
+            if not opt.access_token and not opt.account_phone:
+                print("Error: --account-phone is required for API v2")
+                return 2
         return self.ui(opt)
 
     def main(self) -> None:

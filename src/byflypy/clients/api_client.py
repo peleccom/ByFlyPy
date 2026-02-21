@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 import requests
 
@@ -13,6 +16,9 @@ from byflypy.models import (
     TrafficDetails,
     UserInfo,
 )
+
+if TYPE_CHECKING:
+    from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +31,70 @@ __all__ = [
     "ApiUser",
     "ByFly2FARequiredError",
     "ByFlyApiClient",
+    "TokenManager",
 ]
+
+
+class TokenManager:
+    """Manage access tokens for API v2."""
+
+    def __init__(self, token_file: Path | None = None) -> None:
+        self._token_file = token_file or Path.home() / ".byfly_token.json"
+
+    def load(self, phone: str) -> str | None:
+        """Load access token from file for given phone number."""
+        if not self._token_file.exists():
+            return None
+
+        try:
+            with open(self._token_file) as f:
+                data = json.load(f)
+            profile = data.get(phone)
+            if not profile:
+                return None
+
+            access_token = profile.get("access_token")
+            expires_at_str = profile.get("expires_at")
+
+            if not access_token:
+                return None
+
+            if expires_at_str:
+                expires_at = datetime.fromisoformat(expires_at_str)
+                if datetime.now() >= expires_at:
+                    print(f"Token for {phone} has expired")
+                    return None
+        except (json.JSONDecodeError, ValueError, OSError):
+            return None
+        else:
+            return access_token
+
+    def save(self, phone: str, access_token: str, expires_at: datetime | None = None) -> None:
+        """Save access token to file for given phone number."""
+        data: dict[str, dict[str, Any]] = {}
+
+        if self._token_file.exists():
+            try:
+                with open(self._token_file) as f:
+                    data = json.load(f)
+            except (json.JSONDecodeError, ValueError):
+                data = {}
+
+        data[phone] = {
+            "access_token": access_token,
+            "expires_at": expires_at.isoformat() if expires_at else None,
+            "phone": phone,
+        }
+
+        with open(self._token_file, "w") as f:
+            json.dump(data, f, indent=2)
+
+        print(f"Token saved to {self._token_file}")
 
 
 class ByFly2FARequiredError(Exception):
     """Raised when SMS 2FA is required."""
+
     """Raised when SMS code has expired."""
 
 
@@ -258,6 +323,7 @@ class ByFlyApiClient:
         password: str | None = None,
         sms_code: str | None = None,
         login: str | None = None,
+        token_manager: TokenManager | None = None,
     ) -> None:
         """Initialize API client.
 
@@ -266,11 +332,13 @@ class ByFlyApiClient:
             password: Account password. Optional if using access_token.
             sms_code: SMS 2FA code (required after first login if enabled)
             login: Login number (contract ID) to use
+            token_manager: Optional TokenManager for automatic token persistence
         """
         self._phone = phone
         self._password = password
         self._sms_code = sms_code
         self._login = login
+        self._token_manager = token_manager
         self._session = requests.Session()
         self._access_token: str | None = None
         self._token_expires_at: datetime | None = None
@@ -284,6 +352,9 @@ class ByFlyApiClient:
         """Set access token directly (skip login)."""
         self._access_token = access_token
 
+    def _normalize_phone(self, phone: str) -> str:
+        return phone.replace("+", "").replace(" ", "")
+
     @property
     def access_token(self) -> str | None:
         """Get the current access token."""
@@ -296,8 +367,11 @@ class ByFlyApiClient:
             return False
         return not (self._token_expires_at and datetime.now() >= self._token_expires_at)
 
-    def login(self) -> bool:
+    def login(self, use_saved_token: bool = True) -> bool:
         """Authenticate with the API.
+
+        Args:
+            use_saved_token: If True and token_manager is set, try to load saved token first
 
         Returns:
             True if login successful
@@ -306,6 +380,13 @@ class ByFlyApiClient:
             ByFly2FARequiredError: If SMS code needed but not provided
             ByFlyAuthError: If authentication fails
         """
+        if use_saved_token and self._token_manager and self._phone:
+            saved_token = self._token_manager.load(self._phone)
+            if saved_token:
+                self._access_token = saved_token
+                if self.is_authenticated:
+                    return True
+
         if not self._phone or not self._password:
             raise ByFlyAuthError("Empty phone or password")
 
@@ -324,12 +405,15 @@ class ByFlyApiClient:
         if result.expires_in:
             self._token_expires_at = datetime.now() + timedelta(seconds=result.expires_in)
 
+        if self._token_manager and self._phone:
+            self._token_manager.save(self._phone, self._access_token, self._token_expires_at)
+
         return True
 
     def _request_token(self) -> ApiAuthResult:
         """Make OAuth token request."""
         payload: dict = {
-            "username": self._phone,
+            "username": self._normalize_phone(self._phone),  # type: ignore[arg-type]
             "password": self._password,
         }
 
@@ -341,10 +425,10 @@ class ByFlyApiClient:
             json=payload,
             headers=self._base_headers(),
         )
-
         if resp.status_code != 200:
-            raise ByFlyAuthError(f"Authentication failed with status {resp.status_code}")
-
+            raise ByFlyAuthError(
+                f"Authentication failed with status {resp.status_code}.\n {resp.text}"
+            )
         data = resp.json()
         return ApiAuthResult(
             requires_2fa=data.get("2fa", False),

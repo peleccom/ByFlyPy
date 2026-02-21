@@ -2,7 +2,7 @@
 
 __version__ = "3.2"
 
-from byflypy.clients.api_client import ByFly2FARequiredError, ByFlyApiClient
+from byflypy.clients.api_client import ByFly2FARequiredError, ByFlyApiClient, TokenManager
 from byflypy.clients.html_client import (
     ByFlyAuthError,
     ByFlyBanError,
@@ -24,6 +24,7 @@ __all__ = [
     "ByFlyInvalidResponseError",
     "ClaimPayment",
     "Session",
+    "TokenManager",
     "TotalStatInfo",
     "TrafficDetails",
     "UserInfo",

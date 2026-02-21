@@ -13,7 +13,12 @@ from byflypy.cli import (
     Program,
     print_traffic_table,
 )
-from byflypy.clients.api_client import ApiApplication, ApiContract, ApiTariff
+from byflypy.clients.api_client import (
+    ApiApplication,
+    ApiContract,
+    ApiTariff,
+    TokenManager,
+)
 from byflypy.clients.html_client import (
     AccountPageParser,
     PaymentsPageParser,
@@ -191,7 +196,7 @@ class TestProgram:
         """Create mock args for API v2."""
         args = Mock()
         args.use_api_v1 = False
-        args.account_phone = "375331234567"
+        args.account_phone = "+375331234567"
         args.password = "test_pass"
         args.access_token = None
         args.btk_id = None
@@ -199,7 +204,16 @@ class TestProgram:
         args.quiet = False
         args.graph = None
         args.previous_period = False
+        args.login = None  # Explicitly set to None
+        args.imagefilename = None
         return args
+
+    @pytest.fixture
+    def mock_token_manager(self):
+        """Create a mock TokenManager."""
+        mock = Mock(spec=TokenManager)
+        mock.load.return_value = None
+        return mock
 
     @patch("byflypy.cli.ByFlyHtmlClient")
     def test_ui_api_v1(self, mock_client_class, program, mock_args_api_v1):
@@ -220,8 +234,12 @@ class TestProgram:
         result = program.ui(mock_args_api_v1)
         assert result == 0
 
-    def test_ui_api_v2(self, program, mock_args_api_v2):
+    @patch("byflypy.cli.TokenManager")
+    def test_ui_api_v2(self, mock_token_manager_class, program, mock_args_api_v2):
         """Test UI with API v2."""
+        mock_token_manager = Mock()
+        mock_token_manager.load.return_value = None
+        mock_token_manager_class.return_value = mock_token_manager
 
         mock_app = ApiApplication(
             id=1,
@@ -262,17 +280,20 @@ class TestProgram:
         original_init = ByFlyApiClient.__init__
         original_login = ByFlyApiClient.login
 
-        def mock_init(self, phone=None, password=None, sms_code=None, login=None):
+        def mock_init(
+            self, phone=None, password=None, sms_code=None, login=None, token_manager=None
+        ):
             self._phone = phone
             self._password = password
             self._sms_code = sms_code
             self._login = login
+            self._token_manager = token_manager
             self._session = None
             self._access_token = "test_token"
             self._token_expires_at = None
             self._user = None
 
-        def mock_login(self):
+        def mock_login(self, use_saved_token=True):
             return True
 
         def mock_get_contracts(self):
@@ -295,8 +316,15 @@ class TestProgram:
             del ByFlyApiClient.get_contracts
             del ByFlyApiClient.get_traffic_details
 
-    def test_ui_api_v2_multiple_logins_error(self, program, mock_args_api_v2):
+    @patch("byflypy.cli.TokenManager")
+    def test_ui_api_v2_multiple_logins_error(
+        self, mock_token_manager_class, program, mock_args_api_v2
+    ):
         """Test UI with API v2 when multiple contracts exist."""
+        mock_token_manager = Mock()
+        mock_token_manager.load.return_value = None
+        mock_token_manager_class.return_value = mock_token_manager
+
         mock_contract1 = ApiContract(
             id=123,
             user_id=1,
@@ -334,17 +362,20 @@ class TestProgram:
         original_init = ByFlyApiClient.__init__
         original_login = ByFlyApiClient.login
 
-        def mock_init(self, phone=None, password=None, sms_code=None, login=None):
+        def mock_init(
+            self, phone=None, password=None, sms_code=None, login=None, token_manager=None
+        ):
             self._phone = phone
             self._password = password
             self._sms_code = sms_code
             self._login = login
+            self._token_manager = token_manager
             self._session = None
             self._access_token = "test_token"
             self._token_expires_at = None
             self._user = None
 
-        def mock_login(self):
+        def mock_login(self, use_saved_token=True):
             return True
 
         def mock_get_contracts(self):
@@ -362,9 +393,14 @@ class TestProgram:
             ByFlyApiClient.login = original_login
             del ByFlyApiClient.get_contracts
 
-    def test_ui_api_v2_invalid_login(self, program, mock_args_api_v2):
+    @patch("byflypy.cli.TokenManager")
+    def test_ui_api_v2_invalid_login(self, mock_token_manager_class, program, mock_args_api_v2):
         """Test UI with API v2 when btk_id is invalid."""
-        mock_args_api_v2.btk_id = "invalid_btk_id"
+        mock_token_manager = Mock()
+        mock_token_manager.load.return_value = None
+        mock_token_manager_class.return_value = mock_token_manager
+
+        mock_args_api_v2.login = "invalid_btk_id"
 
         mock_contract1 = ApiContract(
             id=123,
@@ -386,17 +422,20 @@ class TestProgram:
         original_init = ByFlyApiClient.__init__
         original_login = ByFlyApiClient.login
 
-        def mock_init(self, phone=None, password=None, sms_code=None, login=None):
+        def mock_init(
+            self, phone=None, password=None, sms_code=None, login=None, token_manager=None
+        ):
             self._phone = phone
             self._password = password
             self._sms_code = sms_code
-            self._login = login
+            self._login = None
+            self._token_manager = token_manager
             self._session = None
             self._access_token = "test_token"
             self._token_expires_at = None
             self._user = None
 
-        def mock_login(self):
+        def mock_login(self, use_saved_token=True):
             return True
 
         def mock_get_contracts(self):
@@ -405,7 +444,6 @@ class TestProgram:
         ByFlyApiClient.__init__ = mock_init
         ByFlyApiClient.login = mock_login
         ByFlyApiClient.get_contracts = mock_get_contracts
-
         try:
             result = program.ui(mock_args_api_v2)
             assert result == 2
@@ -449,7 +487,7 @@ class TestArgumentParser:
             "pass",
         ])
 
-        assert args.btk_id == "123456789"
+        assert args.login == "123456789"
         assert args.account_phone == "375331234567"
         assert args.password == "pass"
 

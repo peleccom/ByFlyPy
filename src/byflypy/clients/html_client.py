@@ -433,7 +433,7 @@ class StatPageParser(PageParser):
     def _parse_duration(raw_duration: str) -> timedelta:
         """Parse duration string to timedelta."""
         try:
-            ttuple = time.strptime(raw_duration, "%d.%H:%M:%S")[2:6]
+            ttuple = time.strptime(raw_duration + ".2000", "%d.%H:%M:%S.%Y")[2:6]
             return timedelta(days=ttuple[0], hours=ttuple[1], minutes=ttuple[2], seconds=ttuple[3])
         except Exception:
             time_parts = raw_duration.split(":")
