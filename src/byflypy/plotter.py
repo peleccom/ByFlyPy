@@ -11,10 +11,11 @@ from byflypy.models import Session
 try:
     import matplotlib as mpl
     import matplotlib.pylab as plt
-except ImportError as err:
-    raise ImportError("matplotlib is required for plotting") from err
 
-mpl.rcParams["font.sans-serif"] = "Tahoma, Arial, DejaVu Serif"
+except ImportError:
+    print("matplotlib is required for plotting")
+
+    mpl.rcParams["font.sans-serif"] = "Tahoma, Arial, DejaVu Serif"
 
 _MONTHS = {
     1: "Января",

@@ -15,7 +15,6 @@ from byflypy.clients.api_client import ByFly2FARequiredError, ByFlyApiClient, To
 from byflypy.clients.html_client import ByFlyError, ByFlyHtmlClient, get_exception_str
 from byflypy.database import DBManager, Table
 from byflypy.models import TrafficDetails
-from byflypy.plotter import Plotter
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +247,8 @@ class Program:
             ui.print_claim_payments_status()
 
             if opt.graph and HAS_MATPLOT:
+                from byflypy.plotter import Plotter  # noqa: PLC0415
+
                 plt = Plotter()
                 if opt.imagefilename:
                     fname = opt.imagefilename
@@ -278,10 +279,7 @@ class Program:
         phone = None
 
         # Normalize phone number (add + prefix if not present)
-        if opt.account_phone:
-            phone = opt.account_phone
-            if phone and not phone.startswith("+"):
-                phone = "+" + phone
+        phone = self._normalize_phone(opt)
 
         # Use token from command line, file, or login
         if opt.access_token:
@@ -291,6 +289,8 @@ class Program:
             client.set_access_token(opt.access_token)
         elif phone:
             token_manager = TokenManager()
+            if not token_manager.load(phone) and not opt.password:
+                opt.password = self._get_password_if_not_specified(opt.password)
             client = ByFlyApiClient(
                 phone=phone,
                 password=opt.password,
@@ -379,6 +379,17 @@ class Program:
                     plt.plot_traf_allocation(sessions, show=show, fname=fname)
 
         return 0
+
+    def _normalize_phone(self, opt):
+        phone = opt.account_phone
+        if phone and not phone.startswith("+"):
+            phone = "+" + phone
+        return phone
+
+    def _get_password_if_not_specified(self, password):
+        if not password:
+            password = getpass.getpass("Password:", echo_char="*")
+        return password
 
     def setup_cmd_parser(self) -> argparse.ArgumentParser:
         """Set up command-line argument parser."""
@@ -551,8 +562,7 @@ class Program:
                     sys.exit(1)
                 opt.login = a
                 a = pass_from_db(opt.login, database_filename, opt)
-                if a is None:
-                    a = getpass.getpass("Password:", echo_char="*")
+                a = self._get_password_if_not_specified(a)
                 if a == "":
                     print("Incorrect data")
                     sys.exit(1)
@@ -612,8 +622,7 @@ class Program:
                 sys.exit()
             if not opt.password:
                 opt.password = pass_from_db(opt.login, database_filename, opt)
-                if not opt.password:
-                    opt.password = getpass.getpass("Password:", echo_char="*")
+                opt.password = self._get_password_if_not_specified(opt.password)
         else:
             # For API v2, we need account_phone and password
             if not opt.access_token and not opt.account_phone:

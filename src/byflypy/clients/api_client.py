@@ -8,17 +8,18 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import requests
 
 from byflypy.models import (
     TrafficDetails,
-    UserInfo,
 )
 
 if TYPE_CHECKING:
     from typing import Any
+
+HTTP_METHODS_LITERAL = Literal["GET", "POST"]
 
 logger = logging.getLogger(__name__)
 
@@ -384,8 +385,8 @@ class ByFlyApiClient:
             saved_token = self._token_manager.load(self._phone)
             if saved_token:
                 self._access_token = saved_token
-                if self.is_authenticated:
-                    return True
+                self.get_user()
+                return True
 
         if not self._phone or not self._password:
             raise ByFlyAuthError("Empty phone or password")
@@ -420,10 +421,11 @@ class ByFlyApiClient:
         if self._sms_code:
             payload["code"] = self._sms_code
 
-        resp = self._session.post(
-            f"{self.BASE_URL}/oauth/token",
-            json=payload,
-            headers=self._base_headers(),
+        resp = self._make_request(
+            "POST",
+            "oauth/token",
+            payload=payload,
+            auth=False,
         )
         if resp.status_code != 200:
             raise ByFlyAuthError(
@@ -449,6 +451,19 @@ class ByFlyApiClient:
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
         }
 
+    def _make_request(
+        self, method: HTTP_METHODS_LITERAL, api_path: str, payload: dict | None = None, auth=True
+    ) -> requests.Response:
+        if api_path.startswith("/"):
+            api_path = api_path[1:]
+        headers = self._auth_headers() if auth else self._base_headers()
+        resp = self._session.request(
+            method=method, url=f"{self.BASE_URL}/{api_path}", headers=headers, json=payload
+        )
+        if resp.status_code == 401:
+            raise ByFlyAuthError(f"Authentication failed {resp.text}")
+        return resp
+
     def _auth_headers(self) -> dict:
         """Get authenticated headers."""
         if not self._access_token:
@@ -469,10 +484,9 @@ class ByFlyApiClient:
     def get_user(self) -> ApiUser:
         """Get current user profile."""
         self._ensure_authenticated()
-
-        resp = self._session.get(
-            f"{self.BASE_URL}/users/self",
-            headers=self._auth_headers(),
+        resp = self._make_request(
+            "GET",
+            "users/self",
         )
 
         if resp.status_code != 200:
@@ -486,9 +500,9 @@ class ByFlyApiClient:
         """List all contracts for user."""
         self._ensure_authenticated()
 
-        resp = self._session.get(
-            f"{self.BASE_URL}/contracts",
-            headers=self._auth_headers(),
+        resp = self._make_request(
+            "GET",
+            "contracts",
         )
 
         if resp.status_code != 200:
@@ -502,9 +516,9 @@ class ByFlyApiClient:
         """Get single contract by ID."""
         self._ensure_authenticated()
 
-        resp = self._session.get(
-            f"{self.BASE_URL}/contracts/{contract_id}",
-            headers=self._auth_headers(),
+        resp = self._make_request(
+            "GET",
+            f"/contracts/{contract_id}",
         )
 
         if resp.status_code != 200:
@@ -525,28 +539,6 @@ class ByFlyApiClient:
         contracts = self.get_contracts()
         return contracts[0] if contracts else None
 
-    def get_balance(self) -> Decimal:
-        """Get balance from primary contract."""
-        contract = self.get_primary_contract()
-        return contract.balance if contract else Decimal("0")
-
-    def get_internet_logins(self, contract_id: int) -> list[dict]:
-        """Get available internet logins for a contract.
-
-        Returns:
-            List of dicts with keys: login, application_id, tariff_name
-        """
-        contract = self.get_contract(contract_id)
-        logins = []
-        for app in contract.applications:
-            if app.btk_login:
-                logins.append({
-                    "login": app.btk_login,
-                    "application_id": app.id,
-                    "tariff_name": app.tariff.name if app.tariff else "Unknown",
-                })
-        return logins
-
     def get_traffic_details(
         self,
         contract_id: int,
@@ -566,12 +558,11 @@ class ByFlyApiClient:
         self._ensure_authenticated()
 
         # Try without usage-details-key first
-        url = f"{self.BASE_URL}/contracts/{contract_id}/applications/{application_id}/fetch-traffic-details"
 
-        resp = self._session.post(
-            url,
-            headers=self._auth_headers(),
-            json={"attach_file": False},
+        resp = self._make_request(
+            "POST",
+            f"contracts/{contract_id}/applications/{application_id}/fetch-traffic-details",
+            payload={"attach_file": False},
         )
 
         if resp.status_code != 200:
@@ -579,29 +570,3 @@ class ByFlyApiClient:
 
         data = resp.json()
         return TrafficDetails.from_api_response(data)
-
-    def api_contract_to_user_info(self, contract: ApiContract) -> UserInfo:
-        """Convert API contract to legacy UserInfo format."""
-        app = contract.applications[0] if contract.applications else None
-        tariff_name = ""
-        if app and app.tariff:
-            tariff_name = app.tariff.name
-        elif app:
-            tariff_name = str(app.tariff_id)
-
-        return UserInfo(
-            full_name=contract.name,
-            plan=tariff_name,
-            balance=contract.balance,
-        )
-
-
-def api_user_to_user_info(user: ApiUser, contract: ApiContract) -> UserInfo:
-    """Convert API user + contract to legacy UserInfo format."""
-    return UserInfo(
-        full_name=user.name,
-        plan=contract.applications[0].tariff.name
-        if contract.applications and contract.applications[0].tariff
-        else "",
-        balance=contract.balance,
-    )
