@@ -112,11 +112,8 @@ python byfly.py -l login --db users.db
 
 ```
 ByFlyPy/
-├── byfly.py          # Main CLI application
-├── byflyuser.py      # ByFly API client
-├── database.py       # SQLite database manager
-├── plotinfo.py       # Matplotlib plotting utilities
-├── tests.py          # pytest test suite
+├── src/
+├── tests/          # pytest test suite
 ├── pyproject.toml    # Project configuration
 ├── Makefile          # Development commands
 └── testdata/         # Test fixtures

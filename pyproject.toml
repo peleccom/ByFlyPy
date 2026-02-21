@@ -3,7 +3,7 @@ name = "ByFlyPy"
 version = "3.2"
 description = "ByFly user console application"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     {name = "Александр"},
 ]
@@ -35,9 +35,9 @@ plot = [
 byfly = "byflypy.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/anomalyco/ByFlyPy"
-Repository = "https://github.com/anomalyco/ByFlyPy"
-Issues = "https://github.com/anomalyco/ByFlyPy/issues"
+Homepage = "https://github.com/peleccom/ByFlyPy"
+Repository = "https://github.com/peleccom/ByFlyPy"
+Issues = "https://github.com/peleccom/ByFlyPy/issues"
 
 [build-system]
 requires = ["hatchling"]
@@ -53,7 +53,7 @@ dev = [
     "requests-mock>=1.10.0",
     "ruff>=0.15.0",
     "mypy>=1.0.0",
-    "matplotlib>=3.0.0",
+    "pre-commit>=4.5.1",
 ]
 
 [tool.pytest.ini_options]
@@ -61,7 +61,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 python_classes = ["Test*"]
-addopts = "-v --strict-markers"
+addopts = "--cov-report=term-missing --cov-report=html"
 
 [tool.ruff]
 target-version = "py39"
@@ -138,3 +138,6 @@ skip_empty = true
 [tool.coverage.run]
 branch = true
 source = ["src"]
+omit = [
+    "*/__init__.py",
+]
