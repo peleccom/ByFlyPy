@@ -1,6 +1,10 @@
 """Tests for ByFlyPy CLI."""
 
+import contextlib
 import os
+import sys
+import tempfile
+import types
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import Mock, patch
@@ -302,16 +306,16 @@ class TestProgram:
         def mock_get_traffic_details(self, contract_id, application_id):
             return None
 
-        ByFlyApiClient.__init__ = mock_init
-        ByFlyApiClient.login = mock_login
-        ByFlyApiClient.get_contracts = mock_get_contracts
-        ByFlyApiClient.get_traffic_details = mock_get_traffic_details
+        ByFlyApiClient.__init__ = mock_init  # type: ignore[assignment]
+        ByFlyApiClient.login = mock_login  # type: ignore[assignment]
+        ByFlyApiClient.get_contracts = mock_get_contracts  # type: ignore[assignment]
+        ByFlyApiClient.get_traffic_details = mock_get_traffic_details  # type: ignore[assignment]
 
         try:
             result = program.ui(mock_args_api_v2)
             assert result == 0
         finally:
-            ByFlyApiClient.__init__ = original_init
+            ByFlyApiClient.__init__ = original_init  # type: ignore[assignment]
             ByFlyApiClient.login = original_login
             del ByFlyApiClient.get_contracts
             del ByFlyApiClient.get_traffic_details
@@ -381,15 +385,15 @@ class TestProgram:
         def mock_get_contracts(self):
             return [mock_contract1, mock_contract2]
 
-        ByFlyApiClient.__init__ = mock_init
-        ByFlyApiClient.login = mock_login
-        ByFlyApiClient.get_contracts = mock_get_contracts
+        ByFlyApiClient.__init__ = mock_init  # type: ignore[assignment]
+        ByFlyApiClient.login = mock_login  # type: ignore[assignment]
+        ByFlyApiClient.get_contracts = mock_get_contracts  # type: ignore[assignment]
 
         try:
             result = program.ui(mock_args_api_v2)
             assert result == 2
         finally:
-            ByFlyApiClient.__init__ = original_init
+            ByFlyApiClient.__init__ = original_init  # type: ignore[assignment]
             ByFlyApiClient.login = original_login
             del ByFlyApiClient.get_contracts
 
@@ -441,16 +445,154 @@ class TestProgram:
         def mock_get_contracts(self):
             return [mock_contract1]
 
-        ByFlyApiClient.__init__ = mock_init
-        ByFlyApiClient.login = mock_login
-        ByFlyApiClient.get_contracts = mock_get_contracts
+        ByFlyApiClient.__init__ = mock_init  # type: ignore[assignment]
+        ByFlyApiClient.login = mock_login  # type: ignore[assignment]
+        ByFlyApiClient.get_contracts = mock_get_contracts  # type: ignore[assignment]
         try:
             result = program.ui(mock_args_api_v2)
             assert result == 2
         finally:
-            ByFlyApiClient.__init__ = original_init
+            ByFlyApiClient.__init__ = original_init  # type: ignore[assignment]
             ByFlyApiClient.login = original_login
             del ByFlyApiClient.get_contracts
+
+    @patch("byflypy.cli.TokenManager")
+    @patch("byflypy.cli.HAS_MATPLOT", True)
+    def test_ui_api_v2_with_graph_path(self, mock_token_manager_class, program, mock_args_api_v2):
+        """Test API v2 path with --graph does not raise NameError (Plotter import)."""
+        mock_token_manager = Mock()
+        mock_token_manager.load.return_value = None
+        mock_token_manager_class.return_value = mock_token_manager
+
+        mock_args_api_v2.graph = "time"
+        mock_args_api_v2.previous_period = False
+        mock_args_api_v2.imagefilename = None
+
+        mock_app = ApiApplication(
+            id=1,
+            tariff_id=1,
+            price=Decimal("41.50"),
+            tariff=ApiTariff(
+                id=1,
+                name="ЯСНА 100",
+                description="",
+                price=Decimal("41.50"),
+                group_name=None,
+                is_archival=False,
+            ),
+            services=[],
+            can_change_tariff=True,
+            tariff_change_available_at=None,
+            available_tariffs=[],
+            btk_login="",
+        )
+        mock_contract = ApiContract(
+            id=123,
+            user_id=1,
+            login="test_login",
+            btk_id="test_btk_id",
+            balance=Decimal("47.49"),
+            status="active",
+            name="Test User",
+            addresses=None,
+            price=Decimal("41.50"),
+            terminate_in=30,
+            applications=[mock_app],
+            can_add_funds=True,
+            can_apply_promised_payment=True,
+            max_promised_payment_amount=Decimal("20.00"),
+        )
+
+        original_init = ByFlyApiClient.__init__
+        original_login = ByFlyApiClient.login
+
+        def mock_init(
+            self, phone=None, password=None, sms_code=None, login=None, token_manager=None
+        ):
+            self._phone = phone
+            self._password = password
+            self._sms_code = sms_code
+            self._login = login
+            self._token_manager = token_manager
+            self._session = None
+            self._access_token = "test_token"
+            self._token_expires_at = None
+            self._user = None
+
+        def mock_login(self, use_saved_token=True):
+            return True
+
+        def mock_get_contracts(self):
+            return [mock_contract]
+
+        def mock_get_traffic_details(self, contract_id, application_id):
+            return TrafficDetails(
+                total_incoming=Decimal("100"),
+                total_outgoing=Decimal("50"),
+                total_traffic=Decimal("150"),
+                total_duration="1:00:00",
+                sessions=[],
+            )
+
+        ByFlyApiClient.__init__ = mock_init  # type: ignore[assignment]
+        ByFlyApiClient.login = mock_login  # type: ignore[assignment]
+        ByFlyApiClient.get_contracts = mock_get_contracts  # type: ignore[assignment]
+        ByFlyApiClient.get_traffic_details = mock_get_traffic_details  # type: ignore[assignment]
+
+        fake_plotter_module = types.ModuleType("byflypy.plotter")
+        fake_plotter_module.Plotter = Mock()  # type: ignore[unresolved-attribute]
+
+        try:
+            with patch.dict(sys.modules, {"byflypy.plotter": fake_plotter_module}):
+                result = program.ui(mock_args_api_v2)
+            assert result == 0
+            fake_plotter_module.Plotter.assert_called_once()
+        finally:
+            ByFlyApiClient.__init__ = original_init  # type: ignore[assignment]
+            ByFlyApiClient.login = original_login
+            del ByFlyApiClient.get_contracts
+            del ByFlyApiClient.get_traffic_details
+
+
+class TestListAndInteractiveUseApiV1:
+    """Test that --list and --interactive use API v1 (login:password format)."""
+
+    def test_list_checker_sets_use_api_v1(self):
+        """List checker uses API v1 so login:password file format works."""
+        program = Program()
+        parser = program.setup_cmd_parser()
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+            f.write("mylogin:mypass\n")
+            list_path = f.name
+        try:
+            opt = parser.parse_args(["--list", list_path])
+            assert opt.use_api_v1 is False  # not set by parser
+            ui_calls = []
+
+            def capture_ui(o):
+                ui_calls.append((o.use_api_v1,))
+
+            program.ui = capture_ui  # type: ignore[assignment]
+            program.list_checker_handler(opt)
+            assert len(ui_calls) == 1
+            assert ui_calls[0][0] is True  # list_checker_handler sets use_api_v1
+        finally:
+            os.unlink(list_path)
+
+    def test_interactive_sets_use_api_v1(self):
+        """Interactive mode uses API v1 so Login/Password prompt works."""
+        program = Program()
+        parser = program.setup_cmd_parser()
+        opt = parser.parse_args(["--interactive"])
+        assert opt.use_api_v1 is False
+        with (
+            patch("builtins.input", return_value=""),
+            patch("sys.exit", side_effect=SystemExit),
+            contextlib.suppress(SystemExit),
+        ):
+            program.interactive_mode_handler(opt, "users.db")
+        # Handler sets use_api_v1=True at start before prompting
+        assert opt.use_api_v1 is True
 
 
 class TestArgumentParser:

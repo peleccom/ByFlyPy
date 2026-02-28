@@ -48,12 +48,14 @@ packages = ["src/byflypy"]
 
 [dependency-groups]
 dev = [
+    "deptry>=0.15.0",
     "pytest>=8.0.0",
     "pytest-cov>=7.0.0",
     "requests-mock>=1.10.0",
     "ruff>=0.15.0",
     "mypy>=1.0.0",
     "pre-commit>=4.5.1",
+    "ty>=0.0.19",
 ]
 
 [tool.pytest.ini_options]

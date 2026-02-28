@@ -9,8 +9,8 @@ from collections.abc import Generator
 from byflypy.models import Session
 
 try:
-    import matplotlib as mpl
-    import matplotlib.pylab as plt
+    import matplotlib as mpl  # type: ignore[import-untyped]
+    import matplotlib.pylab as plt  # type: ignore[import-untyped]
 
 except ImportError:
     print("matplotlib is required for plotting")
@@ -143,10 +143,9 @@ class Plotter:
         ax = fig.add_subplot(111)
 
         # Adjust x positions for bar chart
-        for idx, val in enumerate(time_peaks[0]):
-            time_peaks[0][idx] = val - 0.5
+        time_peaks_0 = [val - 0.5 for val in time_peaks[0]]
 
-        rects = ax.bar(time_peaks[0], time_peaks[1], width=0.5, label="Трафик за день")
+        rects = ax.bar(time_peaks_0, time_peaks[1], width=0.5, label="Трафик за день")
 
         # Add labels for bars
         for idx, rect in enumerate(rects):

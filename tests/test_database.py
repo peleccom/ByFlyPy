@@ -162,9 +162,12 @@ class TestDatabaseIntegration:
             db_manager.save_password("user2", "pass2")
             db_manager.save_password("user3", "pass3")
 
-            assert db_manager.get_password("user1")[1] == "pass1"
-            assert db_manager.get_password("user2")[1] == "pass2"
-            assert db_manager.get_password("user3")[1] == "pass3"
+            res1 = db_manager.get_password("user1")
+            res2 = db_manager.get_password("user2")
+            res3 = db_manager.get_password("user3")
+            assert res1 is not None and res1[1] == "pass1"
+            assert res2 is not None and res2[1] == "pass2"
+            assert res3 is not None and res3[1] == "pass3"
 
     def test_file_based_operations(self, db_filename):
         """Test database operations with actual file."""

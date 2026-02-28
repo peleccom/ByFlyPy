@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import sqlite3
 
 
@@ -73,7 +74,7 @@ class Table:
         self.execute(query)
         self.commit()
 
-    def list(self) -> list[Record]:
+    def list(self) -> builtins.list[Record]:
         """List all records in the table."""
         query = "SELECT login, password FROM users"
         cursor = self.execute(query)

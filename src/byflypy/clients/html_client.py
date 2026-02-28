@@ -62,7 +62,7 @@ M_DICT = {
     M_NONE: "Неизвестная ошибка",
 }
 
-_DEBUG_ = False
+_DEBUG_: bool = False
 
 TRAF_MEASURE = "Мб"
 MONEY_MEASURE = "руб"
@@ -127,8 +127,13 @@ class ByFlyHtmlClient:
         """
         self._login = login
         self._password = password
+        self._last_error: str | None = None
         self.info = None
         self.session = requests.session()
+
+    def _set_last_error(self, message: str) -> None:
+        """Store last error message for debugging."""
+        self._last_error = message
 
     def check_error_message(self, html: str) -> int:
         """Parse HTML and return status code."""
@@ -370,10 +375,16 @@ class StatPageParser(PageParser):
         table_html = StatPageParser.get_table(html)
         if not table_html:
             return []
-        return [
-            StatPageParser.parse_session(StatPageParser.parse_row(row))
-            for row in StatPageParser.get_rows(table_html)
-        ]
+        result: list[Session] = []
+        for row in StatPageParser.get_rows(table_html):
+            row_cells = StatPageParser.parse_row(row)
+            if row_cells is not None:
+                # Normalize to list[str] for parse_session
+                cells = [c or "" for c in row_cells]
+                session = StatPageParser.parse_session(cells)
+                if session is not None:
+                    result.append(session)
+        return result
 
     @staticmethod
     def get_table(html: str) -> str | None:
@@ -392,7 +403,7 @@ class StatPageParser(PageParser):
         return rows[1:]
 
     @staticmethod
-    def parse_row(row_html: str) -> list[str | None]:
+    def parse_row(row_html: str) -> list[str | None] | None:
         """Parse cells from row HTML."""
         cells = re.findall(StatPageParser.cell_re, row_html, re.DOTALL)
         if not cells:

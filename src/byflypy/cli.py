@@ -8,6 +8,7 @@ import getpass
 import logging
 import os.path
 import sys
+from typing import cast
 
 from byflypy import __version__
 from byflypy.clients import html_client
@@ -87,7 +88,7 @@ class UI:
 
     def _print_info_html(self, only_balance: bool = False) -> bool:
         """Print info from legacy HTML API."""
-        client = self._client  # type: ignore[assignment]
+        client = cast(ByFlyHtmlClient, self._client)
         info = client.get_account_info_page()
         if not info:
             return False
@@ -103,7 +104,7 @@ class UI:
 
     def _print_info_api(self, only_balance: bool = False) -> bool:
         """Print info from new REST API."""
-        client = self._client  # type: ignore[assignment]
+        client = cast(ByFlyApiClient, self._client)
         contract = client.get_primary_contract()
         if not contract:
             return False
@@ -133,7 +134,7 @@ class UI:
 
     def _print_additional_info_html(self) -> bool:
         """Print additional info from legacy API."""
-        client = self._client  # type: ignore[assignment]
+        client = cast(ByFlyHtmlClient, self._client)
         total_stat_info = client.get_additional_info()
         if total_stat_info:
             s = (
@@ -146,7 +147,7 @@ class UI:
 
     def _print_additional_info_api(self) -> bool:
         """Print additional info from new API."""
-        client = self._client  # type: ignore[assignment]
+        client = cast(ByFlyApiClient, self._client)
         contract = client.get_primary_contract()
         if not contract:
             return False
@@ -173,7 +174,7 @@ class UI:
 
     def _print_claim_payments_html(self) -> None:
         """Print claim payments from legacy API."""
-        client = self._client  # type: ignore[assignment]
+        client = cast(ByFlyHtmlClient, self._client)
         payments = client.get_payments_page()
         for payment in payments:
             if payment.is_active:
@@ -185,7 +186,7 @@ class UI:
 
     def _print_claim_payments_api(self) -> None:
         """Print claim payments info from new API."""
-        client = self._client  # type: ignore[assignment]
+        client = cast(ByFlyApiClient, self._client)
         contract = client.get_primary_contract()
         if not contract:
             return
@@ -200,11 +201,11 @@ class UI:
         if self._is_api:
             return self._get_sessions_api(previous_period)
         else:
-            return self._client.get_log(previous_period=previous_period)  # type: ignore[union-attr]
+            return cast(ByFlyHtmlClient, self._client).get_log(previous_period=previous_period)
 
     def _get_sessions_api(self, previous_period: bool = False) -> list:
         """Get sessions from API for plotting."""
-        client = self._client  # type: ignore[assignment]
+        client = cast(ByFlyApiClient, self._client)
         contract = client.get_primary_contract()
         if not contract:
             return []
@@ -362,6 +363,8 @@ class Program:
         ui.print_claim_payments_status()
 
         if opt.graph and HAS_MATPLOT:
+            from byflypy.plotter import Plotter  # noqa: PLC0415
+
             plt = Plotter()
             if opt.imagefilename:
                 fname = opt.imagefilename
@@ -388,7 +391,7 @@ class Program:
 
     def _get_password_if_not_specified(self, password):
         if not password:
-            password = getpass.getpass("Password:", echo_char="*")
+            password = getpass.getpass("Password:", echo_char="*")  # type: ignore[unknown-argument]
         return password
 
     def setup_cmd_parser(self) -> argparse.ArgumentParser:
@@ -415,7 +418,7 @@ class Program:
             action="store",
             type=str,
             dest="account_phone",
-            help="Account phone number for API v2 (e.g., 375331234567)",
+            help="Account phone number for API v2 (e.g., +375331234567)",
             metavar="PHONE",
         )
         auth_group.add_argument(
@@ -553,8 +556,9 @@ class Program:
         return parser
 
     def interactive_mode_handler(self, opt: argparse.Namespace, database_filename: str) -> None:
-        """Handle interactive mode."""
+        """Handle interactive mode (uses API v1: login/password prompt)."""
         try:
+            opt.use_api_v1 = True  # interactive prompts for login/password only
             while True:
                 a = input("Login:")
                 if a == "":
@@ -590,8 +594,9 @@ class Program:
             sys.exit(1)
 
     def list_checker_handler(self, opt: argparse.Namespace) -> None:
-        """Handle list checker mode."""
+        """Handle list checker mode (file format login:password = API v1)."""
         try:
+            opt.use_api_v1 = True  # list file is login:password format
             with open(opt.check_list) as list_file:
                 for line in list_file:
                     lp = line.strip().partition(":")
