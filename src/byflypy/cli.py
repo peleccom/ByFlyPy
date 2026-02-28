@@ -405,14 +405,6 @@ class Program:
         auth_group = parser.add_argument_group("Authentication")
         auth_token = auth_group.add_mutually_exclusive_group(required=False)
         auth_token.add_argument(
-            "-t",
-            "--access-token",
-            action="store",
-            type=str,
-            dest="access_token",
-            help="Access token for API v2 (use instead of phone/password)",
-        )
-        auth_token.add_argument(
             "--account-phone",
             "--phone",
             action="store",
@@ -420,6 +412,24 @@ class Program:
             dest="account_phone",
             help="Account phone number for API v2 (e.g., +375331234567)",
             metavar="PHONE",
+        )
+        auth_token.add_argument(
+            "-t",
+            "--access-token",
+            action="store",
+            type=str,
+            dest="access_token",
+            help="Access token for API v2 (use instead of phone/password)",
+        )
+        auth_group.add_argument(
+            "-l",
+            "--login",
+            "--btk-id",
+            action="store",
+            type=str,
+            dest="login",
+            help="Login(BTK ID)",
+            metavar="LOGIN",
         )
         auth_group.add_argument(
             "-p",
@@ -431,16 +441,13 @@ class Program:
             metavar="PASSWORD",
         )
 
-        api_v1_group = parser.add_argument_group("Authentication (API v1 - Legacy/Deprecated)")
-        api_v1_group.add_argument(
-            "-l",
-            "--login",
-            "--btk-id",
+        auth_group.add_argument(
+            "--sms-code",
             action="store",
             type=str,
-            dest="login",
-            help="Login(BTK ID) for API v1 (legacy)",
-            metavar="LOGIN",
+            dest="sms_code",
+            help="SMS 2FA code for API v2 (prompted if needed)",
+            metavar="CODE",
         )
 
         parser.add_argument(
@@ -451,16 +458,6 @@ class Program:
             help="Use old HTML-based API v1 instead of API v2 (deprecated)",
         )
 
-        contract_group = parser.add_argument_group("Contract Selection (API v2)")
-        contract_group.add_argument(
-            "--sms-code",
-            action="store",
-            type=str,
-            dest="sms_code",
-            help="SMS 2FA code for API v2 (prompted if needed)",
-            metavar="CODE",
-        )
-
         output_group = parser.add_argument_group("Output Options")
         output_group.add_argument(
             "-q",
@@ -469,7 +466,8 @@ class Program:
             dest="quiet",
             help="Print only balance and exit",
         )
-        output_group.add_argument(
+        graph_group = parser.add_argument_group("Graph Options")
+        graph_group.add_argument(
             "-g",
             "--graph",
             action="store",
@@ -479,7 +477,7 @@ class Program:
             help="Show graph: traf (traffic allocation) or time (time allocation)",
             metavar="TYPE",
         )
-        output_group.add_argument(
+        graph_group.add_argument(
             "-s",
             "--save",
             action="store",
