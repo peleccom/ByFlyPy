@@ -2,13 +2,14 @@
 
 __version__ = "3.2"
 
-from byflypy.clients.api_client import ByFly2FARequiredError, ByFlyApiClient, TokenManager
-from byflypy.clients.html_client import (
+from byflypy.clients.api_client import ByFlyApiClient, TokenManager
+from byflypy.clients.html_client import ByFlyHtmlClient
+from byflypy.exceptions import (
+    ByFly2FARequiredError,
     ByFlyAuthError,
     ByFlyBanError,
     ByFlyEmptyResponseError,
     ByFlyError,
-    ByFlyHtmlClient,
     ByFlyInvalidResponseError,
 )
 from byflypy.models import ClaimPayment, Session, TotalStatInfo, TrafficDetails, UserInfo

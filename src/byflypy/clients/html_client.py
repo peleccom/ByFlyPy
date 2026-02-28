@@ -10,6 +10,13 @@ from decimal import Decimal
 
 import requests
 
+from byflypy.exceptions import (
+    ByFlyAuthError,
+    ByFlyBanError,
+    ByFlyEmptyResponseError,
+    ByFlyError,
+    ByFlyInvalidResponseError,
+)
 from byflypy.models import ClaimPayment, Session, TotalStatInfo, UserInfo
 
 logger = logging.getLogger(__name__)
@@ -24,26 +31,6 @@ __all__ = [
     "get_exception_str",
     "log_to_file",
 ]
-
-
-class ByFlyError(Exception):
-    """Base exception for ByFly-related errors."""
-
-
-class ByFlyEmptyResponseError(ByFlyError):
-    """Raised when server returns an empty response."""
-
-
-class ByFlyBanError(ByFlyError):
-    """Raised when too many login attempts have been made."""
-
-
-class ByFlyAuthError(ByFlyError):
-    """Raised when authentication fails."""
-
-
-class ByFlyInvalidResponseError(ByFlyError):
-    """Raised when server returns an invalid response."""
 
 
 M_BAN = 0
@@ -62,23 +49,22 @@ M_DICT = {
     M_NONE: "Неизвестная ошибка",
 }
 
-_DEBUG_: bool = False
-
 TRAF_MEASURE = "Мб"
 MONEY_MEASURE = "руб"
 
 START_PAGE_MARKER = "Состояние счета"
 
 
-def log_to_file(filename: str, log_content: str, force: bool = False) -> None:
+def log_to_file(filename: str, log_content: str, force: bool = False, debug: bool = False) -> None:
     """Log text to file.
 
     Args:
         filename: Path to log file
         log_content: Content to log
-        force: Force write if _DEBUG is False
+        force: Force write when debug is False
+        debug: Enable debug logging (writes to file)
     """
-    if _DEBUG_ or force:
+    if debug or force:
         with open(filename, "w", encoding="utf8") as f:
             f.write(log_content)
 
@@ -118,15 +104,19 @@ class ByFlyHtmlClient:
     URL_STATISTIC_PAGE = "https://issaold.beltelecom.by/statact.html"
     URL_PAYMENTS_PAGE = "https://issaold.beltelecom.by/payact.html"
 
-    def __init__(self, login: str, password: str) -> None:
+    api_version = 1  # HTML/scraping API
+
+    def __init__(self, login: str, password: str, debug: bool = False) -> None:
         """Initialize ByFly HTML client.
 
         Args:
             login: Username
             password: Password
+            debug: Enable debug file logging
         """
         self._login = login
         self._password = password
+        self._debug = debug
         self._last_error: str | None = None
         self.info = None
         self.session = requests.session()
@@ -245,7 +235,7 @@ class ByFlyHtmlClient:
                 raise ByFlyInvalidResponseError(f"Page status code is {r.status_code}")  # noqa: TRY301
             html = r.text
             if logfile:
-                log_to_file(logfile, html)
+                log_to_file(logfile, html, debug=self._debug)
         except Exception as err:
             raise ByFlyInvalidResponseError(get_exception_str(err)) from err
         return html

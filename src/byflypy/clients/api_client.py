@@ -12,12 +12,19 @@ from typing import TYPE_CHECKING, Literal
 
 import requests
 
+from byflypy.exceptions import (
+    ByFly2FARequiredError,
+    ByFlyAuthError,
+    ByFlyError,
+)
 from byflypy.models import (
     TrafficDetails,
 )
 
 if TYPE_CHECKING:
     from typing import Any
+
+    from byflypy.console import Console
 
 HTTP_METHODS_LITERAL = Literal["GET", "POST"]
 
@@ -39,8 +46,13 @@ __all__ = [
 class TokenManager:
     """Manage access tokens for API v2."""
 
-    def __init__(self, token_file: Path | None = None) -> None:
+    def __init__(
+        self,
+        token_file: Path | None = None,
+        console: Console | None = None,
+    ) -> None:
         self._token_file = token_file or Path.home() / ".byfly_token.json"
+        self._console = console
 
     def load(self, phone: str) -> str | None:
         """Load access token from file for given phone number."""
@@ -63,7 +75,10 @@ class TokenManager:
             if expires_at_str:
                 expires_at = datetime.fromisoformat(expires_at_str)
                 if datetime.now() >= expires_at:
-                    print(f"Token for {phone} has expired")
+                    if self._console:
+                        self._console.print(f"Token for {phone} has expired")
+                    else:
+                        print(f"Token for {phone} has expired")
                     return None
         except (json.JSONDecodeError, ValueError, OSError):
             return None
@@ -90,17 +105,10 @@ class TokenManager:
         with open(self._token_file, "w") as f:
             json.dump(data, f, indent=2)
 
-        print(f"Token saved to {self._token_file}")
-
-
-class ByFly2FARequiredError(Exception):
-    """Raised when SMS 2FA is required."""
-
-    """Raised when SMS code has expired."""
-
-
-class ByFlyAuthError(Exception):
-    """Raised when authentication fails."""
+        if self._console:
+            self._console.print(f"Token saved to {self._token_file}")
+        else:
+            print(f"Token saved to {self._token_file}")
 
 
 def _to_decimal(value: str | int | float | None) -> Decimal:
@@ -111,10 +119,6 @@ def _to_decimal(value: str | int | float | None) -> Decimal:
         return Decimal(str(value))
     except Exception:
         return Decimal("0")
-
-
-class ByFlyError(Exception):
-    """Base exception for ByFly-related errors."""
 
 
 @dataclass(frozen=True)
@@ -316,6 +320,7 @@ class ByFlyApiClient:
             print(f"{contract.name}: {contract.balance}")
     """
 
+    api_version = 2  # REST API v2
     BASE_URL = "https://myapi.beltelecom.by/api/v2"
 
     def __init__(

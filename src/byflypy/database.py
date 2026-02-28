@@ -63,17 +63,6 @@ class Table:
             self._connection.close()
             self._connection = None
 
-    def create_table_if_not_exists(self) -> None:
-        """Create the users table if it doesn't exist."""
-        query = """
-            CREATE TABLE IF NOT EXISTS users (
-                login TEXT PRIMARY KEY,
-                password TEXT NOT NULL
-            )
-        """
-        self.execute(query)
-        self.commit()
-
     def list(self) -> builtins.list[Record]:
         """List all records in the table."""
         query = "SELECT login, password FROM users"

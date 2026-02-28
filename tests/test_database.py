@@ -5,7 +5,6 @@ import tempfile
 
 import pytest
 
-from byflypy.clients import html_client
 from byflypy.clients.html_client import log_to_file
 from byflypy.database import DBManager, Record, Table
 
@@ -104,7 +103,7 @@ class TestTable:
 
     def test_list(self, table):
         """Test listing all records."""
-        table.create_table_if_not_exists()
+        DBManager(table)  # creates users table
         table.add(Record("user1", "pass1"))
         table.add(Record("user2", "pass2"))
         records = table.list()
@@ -112,7 +111,7 @@ class TestTable:
 
     def test_add(self, table):
         """Test adding a record to the table."""
-        table.create_table_if_not_exists()
+        DBManager(table)  # creates users table
         assert len(table.list()) == 0
         record = Record("a", "b")
         table.add(record)
@@ -120,7 +119,7 @@ class TestTable:
 
     def test_get(self, table):
         """Test getting a record by primary key."""
-        table.create_table_if_not_exists()
+        DBManager(table)  # creates users table
         table.add(Record("user1", "pass1"))
         record = table.get("user1")
         assert record is not None
@@ -129,13 +128,13 @@ class TestTable:
 
     def test_get_non_exists(self, table):
         """Test getting a non-existent record."""
-        table.create_table_if_not_exists()
+        DBManager(table)  # creates users table
         record = table.get("nonexistent")
         assert record is None
 
     def test_delete(self, table):
         """Test deleting a record from the table."""
-        table.create_table_if_not_exists()
+        DBManager(table)  # creates users table
         table.add(Record("user1", "pass1"))
         assert len(table.list()) == 1
         table.delete("user1")
@@ -172,7 +171,7 @@ class TestDatabaseIntegration:
     def test_file_based_operations(self, db_filename):
         """Test database operations with actual file."""
         with Table(db_filename) as table:
-            table.create_table_if_not_exists()
+            DBManager(table)  # creates users table
 
             record = Record("testuser", "testpass")
             table.add(record)
@@ -209,10 +208,8 @@ class TestLogToFile:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".log") as f:
             filename = f.name
         try:
-            html_client._DEBUG_ = True
-            log_to_file(filename, CONTENT)
+            log_to_file(filename, CONTENT, debug=True)
             assert os.path.getsize(filename) == len(CONTENT)
         finally:
             if os.path.exists(filename):
                 os.remove(filename)
-            html_client._DEBUG_ = False

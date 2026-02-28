@@ -13,7 +13,6 @@ import pytest
 
 from byflypy.cli import (
     UI,
-    ByFlyApiClient,
     Program,
     print_traffic_table,
 )
@@ -28,6 +27,7 @@ from byflypy.clients.html_client import (
     PaymentsPageParser,
     StatPageParser,
 )
+from byflypy.console import default_console
 from byflypy.models import TrafficDetails, UserInfo
 
 
@@ -44,7 +44,7 @@ class TestPrintTrafficTable:
             sessions=[],
         )
 
-        print_traffic_table(traffic)
+        print_traffic_table(traffic, default_console())
         captured = capsys.readouterr()
 
         assert "Traffic Statistics" in captured.out
@@ -62,7 +62,7 @@ class TestUIHtmlClient:
         """Create a mock HTML client."""
         # Use regular Mock without spec to allow flexible attribute access
         client = Mock()
-        client.__class__.__name__ = "ByFlyHtmlClient"
+        client.api_version = 1
         client.info = "Test Info"
         return client
 
@@ -112,7 +112,7 @@ class TestUIApiClient:
         """Create a mock API client."""
         # Use regular Mock without spec to allow flexible attribute access
         client = Mock()
-        client.__class__.__name__ = "ByFlyApiClient"
+        client.api_version = 2
         return client
 
     @pytest.fixture
@@ -219,12 +219,11 @@ class TestProgram:
         mock.load.return_value = None
         return mock
 
-    @patch("byflypy.cli.ByFlyHtmlClient")
-    def test_ui_api_v1(self, mock_client_class, program, mock_args_api_v1):
-        """Test UI with API v1."""
+    def test_ui_api_v1(self, mock_args_api_v1):
+        """Test UI with API v1 using injected client factory."""
         mock_client = Mock()
-        mock_client.__class__.__name__ = "ByFlyHtmlClient"
-        mock_client.login.return_value = True
+        mock_client.api_version = 1
+        mock_client.info = None
         mock_client.get_account_info_page.return_value = UserInfo(
             full_name="Test User",
             plan="Test Plan",
@@ -233,18 +232,16 @@ class TestProgram:
         mock_client.get_money_measure.return_value = "руб"
         mock_client.get_payments_page.return_value = []
         mock_client.get_additional_info.return_value = None
-        mock_client_class.return_value = mock_client
 
+        def factory(opt, db_path, console):
+            return (mock_client, None)
+
+        program = Program(client_factory=factory)
         result = program.ui(mock_args_api_v1)
         assert result == 0
 
-    @patch("byflypy.cli.TokenManager")
-    def test_ui_api_v2(self, mock_token_manager_class, program, mock_args_api_v2):
-        """Test UI with API v2."""
-        mock_token_manager = Mock()
-        mock_token_manager.load.return_value = None
-        mock_token_manager_class.return_value = mock_token_manager
-
+    def test_ui_api_v2(self, mock_args_api_v2):
+        """Test UI with API v2 using injected client factory."""
         mock_app = ApiApplication(
             id=1,
             tariff_id=1,
@@ -263,7 +260,6 @@ class TestProgram:
             available_tariffs=[],
             btk_login="",
         )
-
         mock_contract = ApiContract(
             id=123,
             user_id=1,
@@ -280,190 +276,43 @@ class TestProgram:
             can_apply_promised_payment=True,
             max_promised_payment_amount=Decimal("20.00"),
         )
+        mock_client = Mock()
+        mock_client.api_version = 2
+        mock_client.get_primary_contract.return_value = mock_contract
+        mock_client.get_contracts.return_value = [mock_contract]
+        mock_client.get_traffic_details.return_value = None
 
-        original_init = ByFlyApiClient.__init__
-        original_login = ByFlyApiClient.login
+        def factory(opt, db_path, console):
+            return (mock_client, None)
 
-        def mock_init(
-            self, phone=None, password=None, sms_code=None, login=None, token_manager=None
-        ):
-            self._phone = phone
-            self._password = password
-            self._sms_code = sms_code
-            self._login = login
-            self._token_manager = token_manager
-            self._session = None
-            self._access_token = "test_token"
-            self._token_expires_at = None
-            self._user = None
+        program = Program(client_factory=factory)
+        result = program.ui(mock_args_api_v2)
+        assert result == 0
 
-        def mock_login(self, use_saved_token=True):
-            return True
+    def test_ui_api_v2_multiple_logins_error(self, mock_args_api_v2):
+        """Test UI with API v2 when multiple contracts exist (exit 2)."""
 
-        def mock_get_contracts(self):
-            return [mock_contract]
+        def factory(opt, db_path, console):
+            return (None, 2)
 
-        def mock_get_traffic_details(self, contract_id, application_id):
-            return None
+        program = Program(client_factory=factory)
+        result = program.ui(mock_args_api_v2)
+        assert result == 2
 
-        ByFlyApiClient.__init__ = mock_init  # type: ignore[assignment]
-        ByFlyApiClient.login = mock_login  # type: ignore[assignment]
-        ByFlyApiClient.get_contracts = mock_get_contracts  # type: ignore[assignment]
-        ByFlyApiClient.get_traffic_details = mock_get_traffic_details  # type: ignore[assignment]
-
-        try:
-            result = program.ui(mock_args_api_v2)
-            assert result == 0
-        finally:
-            ByFlyApiClient.__init__ = original_init  # type: ignore[assignment]
-            ByFlyApiClient.login = original_login
-            del ByFlyApiClient.get_contracts
-            del ByFlyApiClient.get_traffic_details
-
-    @patch("byflypy.cli.TokenManager")
-    def test_ui_api_v2_multiple_logins_error(
-        self, mock_token_manager_class, program, mock_args_api_v2
-    ):
-        """Test UI with API v2 when multiple contracts exist."""
-        mock_token_manager = Mock()
-        mock_token_manager.load.return_value = None
-        mock_token_manager_class.return_value = mock_token_manager
-
-        mock_contract1 = ApiContract(
-            id=123,
-            user_id=1,
-            login="login1",
-            btk_id="btk1",
-            balance=Decimal("10.00"),
-            status="active",
-            name="Contract 1",
-            addresses=None,
-            price=Decimal("0"),
-            terminate_in=None,
-            applications=[],
-            can_add_funds=True,
-            can_apply_promised_payment=False,
-            max_promised_payment_amount=None,
-        )
-
-        mock_contract2 = ApiContract(
-            id=456,
-            user_id=1,
-            login="login2",
-            btk_id="btk2",
-            balance=Decimal("20.00"),
-            status="active",
-            name="Contract 2",
-            addresses=None,
-            price=Decimal("0"),
-            terminate_in=None,
-            applications=[],
-            can_add_funds=True,
-            can_apply_promised_payment=False,
-            max_promised_payment_amount=None,
-        )
-
-        original_init = ByFlyApiClient.__init__
-        original_login = ByFlyApiClient.login
-
-        def mock_init(
-            self, phone=None, password=None, sms_code=None, login=None, token_manager=None
-        ):
-            self._phone = phone
-            self._password = password
-            self._sms_code = sms_code
-            self._login = login
-            self._token_manager = token_manager
-            self._session = None
-            self._access_token = "test_token"
-            self._token_expires_at = None
-            self._user = None
-
-        def mock_login(self, use_saved_token=True):
-            return True
-
-        def mock_get_contracts(self):
-            return [mock_contract1, mock_contract2]
-
-        ByFlyApiClient.__init__ = mock_init  # type: ignore[assignment]
-        ByFlyApiClient.login = mock_login  # type: ignore[assignment]
-        ByFlyApiClient.get_contracts = mock_get_contracts  # type: ignore[assignment]
-
-        try:
-            result = program.ui(mock_args_api_v2)
-            assert result == 2
-        finally:
-            ByFlyApiClient.__init__ = original_init  # type: ignore[assignment]
-            ByFlyApiClient.login = original_login
-            del ByFlyApiClient.get_contracts
-
-    @patch("byflypy.cli.TokenManager")
-    def test_ui_api_v2_invalid_login(self, mock_token_manager_class, program, mock_args_api_v2):
-        """Test UI with API v2 when btk_id is invalid."""
-        mock_token_manager = Mock()
-        mock_token_manager.load.return_value = None
-        mock_token_manager_class.return_value = mock_token_manager
-
+    def test_ui_api_v2_invalid_login(self, mock_args_api_v2):
+        """Test UI with API v2 when btk_id is invalid (exit 2)."""
         mock_args_api_v2.login = "invalid_btk_id"
 
-        mock_contract1 = ApiContract(
-            id=123,
-            user_id=1,
-            login="login1",
-            btk_id="btk123",
-            balance=Decimal("10.00"),
-            status="active",
-            name="Contract 1",
-            addresses=None,
-            price=Decimal("0"),
-            terminate_in=None,
-            applications=[],
-            can_add_funds=True,
-            can_apply_promised_payment=False,
-            max_promised_payment_amount=None,
-        )
+        def factory(opt, db_path, console):
+            return (None, 2)
 
-        original_init = ByFlyApiClient.__init__
-        original_login = ByFlyApiClient.login
+        program = Program(client_factory=factory)
+        result = program.ui(mock_args_api_v2)
+        assert result == 2
 
-        def mock_init(
-            self, phone=None, password=None, sms_code=None, login=None, token_manager=None
-        ):
-            self._phone = phone
-            self._password = password
-            self._sms_code = sms_code
-            self._login = None
-            self._token_manager = token_manager
-            self._session = None
-            self._access_token = "test_token"
-            self._token_expires_at = None
-            self._user = None
-
-        def mock_login(self, use_saved_token=True):
-            return True
-
-        def mock_get_contracts(self):
-            return [mock_contract1]
-
-        ByFlyApiClient.__init__ = mock_init  # type: ignore[assignment]
-        ByFlyApiClient.login = mock_login  # type: ignore[assignment]
-        ByFlyApiClient.get_contracts = mock_get_contracts  # type: ignore[assignment]
-        try:
-            result = program.ui(mock_args_api_v2)
-            assert result == 2
-        finally:
-            ByFlyApiClient.__init__ = original_init  # type: ignore[assignment]
-            ByFlyApiClient.login = original_login
-            del ByFlyApiClient.get_contracts
-
-    @patch("byflypy.cli.TokenManager")
-    @patch("byflypy.cli.HAS_MATPLOT", True)
-    def test_ui_api_v2_with_graph_path(self, mock_token_manager_class, program, mock_args_api_v2):
-        """Test API v2 path with --graph does not raise NameError (Plotter import)."""
-        mock_token_manager = Mock()
-        mock_token_manager.load.return_value = None
-        mock_token_manager_class.return_value = mock_token_manager
-
+    @patch("byflypy.cli.plotter_available", return_value=True)
+    def test_ui_api_v2_with_graph_path(self, mock_plotter_available, mock_args_api_v2):
+        """Test API v2 path with --graph uses Plotter (injected factory, no class patches)."""
         mock_args_api_v2.graph = "time"
         mock_args_api_v2.previous_period = False
         mock_args_api_v2.imagefilename = None
@@ -502,56 +351,29 @@ class TestProgram:
             can_apply_promised_payment=True,
             max_promised_payment_amount=Decimal("20.00"),
         )
+        mock_client = Mock()
+        mock_client.api_version = 2
+        mock_client.get_primary_contract.return_value = mock_contract
+        mock_client.get_contracts.return_value = [mock_contract]
+        mock_client.get_traffic_details.return_value = TrafficDetails(
+            total_incoming=Decimal("100"),
+            total_outgoing=Decimal("50"),
+            total_traffic=Decimal("150"),
+            total_duration="1:00:00",
+            sessions=[],
+        )
 
-        original_init = ByFlyApiClient.__init__
-        original_login = ByFlyApiClient.login
-
-        def mock_init(
-            self, phone=None, password=None, sms_code=None, login=None, token_manager=None
-        ):
-            self._phone = phone
-            self._password = password
-            self._sms_code = sms_code
-            self._login = login
-            self._token_manager = token_manager
-            self._session = None
-            self._access_token = "test_token"
-            self._token_expires_at = None
-            self._user = None
-
-        def mock_login(self, use_saved_token=True):
-            return True
-
-        def mock_get_contracts(self):
-            return [mock_contract]
-
-        def mock_get_traffic_details(self, contract_id, application_id):
-            return TrafficDetails(
-                total_incoming=Decimal("100"),
-                total_outgoing=Decimal("50"),
-                total_traffic=Decimal("150"),
-                total_duration="1:00:00",
-                sessions=[],
-            )
-
-        ByFlyApiClient.__init__ = mock_init  # type: ignore[assignment]
-        ByFlyApiClient.login = mock_login  # type: ignore[assignment]
-        ByFlyApiClient.get_contracts = mock_get_contracts  # type: ignore[assignment]
-        ByFlyApiClient.get_traffic_details = mock_get_traffic_details  # type: ignore[assignment]
+        def factory(opt, db_path, console):
+            return (mock_client, None)
 
         fake_plotter_module = types.ModuleType("byflypy.plotter")
         fake_plotter_module.Plotter = Mock()  # type: ignore[unresolved-attribute]
 
-        try:
-            with patch.dict(sys.modules, {"byflypy.plotter": fake_plotter_module}):
-                result = program.ui(mock_args_api_v2)
-            assert result == 0
-            fake_plotter_module.Plotter.assert_called_once()
-        finally:
-            ByFlyApiClient.__init__ = original_init  # type: ignore[assignment]
-            ByFlyApiClient.login = original_login
-            del ByFlyApiClient.get_contracts
-            del ByFlyApiClient.get_traffic_details
+        program = Program(client_factory=factory)
+        with patch.dict(sys.modules, {"byflypy.plotter": fake_plotter_module}):
+            result = program.ui(mock_args_api_v2)
+        assert result == 0
+        fake_plotter_module.Plotter.assert_called_once()
 
 
 class TestListAndInteractiveUseApiV1:

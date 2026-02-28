@@ -14,8 +14,8 @@ try:
 
 except ImportError:
     print("matplotlib is required for plotting")
-
-    mpl.rcParams["font.sans-serif"] = "Tahoma, Arial, DejaVu Serif"
+    mpl = None
+    plt = None
 
 _MONTHS = {
     1: "Января",
@@ -92,7 +92,7 @@ class Plotter:
         show: bool = True,
     ) -> bool:
         """Plot time allocation graph."""
-        if not sessions:
+        if plt is None or not sessions:
             return False
 
         time_peaks = self._get_time_peaks(sessions)
@@ -135,7 +135,7 @@ class Plotter:
         show: bool = True,
     ) -> bool:
         """Plot traffic allocation graph."""
-        if not sessions:
+        if plt is None or not sessions:
             return False
 
         time_peaks = self._get_traf_peaks(sessions)
