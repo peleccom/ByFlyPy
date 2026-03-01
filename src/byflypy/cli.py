@@ -11,7 +11,7 @@ from collections.abc import Callable
 from typing import cast
 
 from byflypy import __version__
-from byflypy.cli_parser import build_parser
+from byflypy.cli_parser import CliNamespace, build_parser
 from byflypy.client_factory import create_client
 from byflypy.clients.api_client import ByFlyApiClient
 from byflypy.clients.html_client import ByFlyHtmlClient
@@ -256,7 +256,7 @@ class Program:
 
     def ui(
         self,
-        opt: argparse.Namespace,
+        opt: CliNamespace,
         showgraph: str | None = None,
         database_filename: str = "users.db",
     ) -> int | None:
@@ -305,47 +305,55 @@ class Program:
         """Set up command-line argument parser."""
         return build_parser()
 
-    def interactive_mode_handler(self, opt: argparse.Namespace, database_filename: str) -> None:
-        """Handle interactive mode (uses API v1: login/password prompt)."""
+    def interactive_mode_handler(self, opt: CliNamespace, database_filename: str) -> None:
+        """Handle interactive mode"""
         try:
-            opt.use_api_v1 = True  # interactive prompts for login/password only
             while True:
-                a = self._console.input("Login:")
-                if a == "":
+                opt_copy = CliNamespace()
+                opt_copy.use_api_v1 = opt.use_api_v1
+                if not opt_copy.use_api_v1:
+                    opt_copy.account_phone = self._console.input("Phone number: ")
+                opt_copy.login = self._console.input("Login: ")
+                if not opt_copy.login and not opt_copy.account_phone:
                     self._console.print("Incorrect data")
                     sys.exit(1)
-                opt.login = a
-                a = pass_from_db(opt.login, database_filename, opt, self._console)
-                if not a:
-                    a = self._console.get_password("Password:")
-                if a == "":
-                    self._console.print("Incorrect data")
+                if opt_copy.login:
+                    opt_copy.password = pass_from_db(
+                        opt_copy.login, database_filename, opt_copy, self._console
+                    )
+                if not opt_copy.password:
+                    opt_copy.password = self._console.get_password("Password: ")
+                if opt_copy.password == "":
+                    self._console.print("Incorrect password")
                     sys.exit(1)
-                opt.password = a
                 import_plot()
                 if plotter_available():
-                    a = self._console.input("Plot graph? [y/n]")
-                    if a in ["y", "Y"]:
-                        a = self._console.input("Which kind of graph [time/traf]")
-                        if a == "time":
-                            opt.graph = "time"
-                        elif a == "traf":
-                            opt.graph = "traf"
-                    elif a in ["n", "N"]:
-                        opt.graph = None
-                self.ui(opt, database_filename=database_filename)
+                    opt_copy.graph = None
+                    should_plot_graph = self._console.input_yn("Plot graph? [y/n]: ")
+                    if should_plot_graph:
+                        graph_type = self._console.input("Which kind of graph [time/traf]?: ")
+                        if graph_type == "time":
+                            opt_copy.graph = "time"
+                        elif graph_type == "traf":
+                            opt_copy.graph = "traf"
+                        else:
+                            opt_copy.graph = None
+                self.ui(opt_copy, database_filename=database_filename)
+                should_continue = None
                 while True:
-                    a = self._console.input("Continue with another login [y/n]?")
-                    if a == "y":
+                    should_continue = self._console.input_yn("Continue with another login [y/n]?: ")
+                    if should_continue is not None:
                         break
-                    elif a == "n":
-                        return
+                if not should_continue:
+                    break
         except Exception as e:
             self._console.print(str(e))
             sys.exit(1)
 
-    def list_checker_handler(self, opt: argparse.Namespace) -> None:
+    def list_checker_handler(self, opt: CliNamespace) -> None:
         """Handle list checker mode (file format login:password = API v1)."""
+        if not opt.check_list:
+            sys.exit(1)
         try:
             opt.use_api_v1 = True  # list file is login:password format
             with open(opt.check_list) as list_file:
@@ -369,9 +377,7 @@ class Program:
         except OSError as e:
             self._console.print(str(e))
 
-    def non_interactive_mode_handler(
-        self, opt: argparse.Namespace, database_filename: str
-    ) -> int | None:
+    def non_interactive_mode_handler(self, opt: CliNamespace, database_filename: str) -> int | None:
         """Handle non-interactive mode. Client creation is done in ui() via factory."""
         if opt.use_api_v1 and not opt.login:
             sys.exit()
@@ -388,7 +394,7 @@ class Program:
             parser.print_help()
             sys.exit()
 
-        opt = parser.parse_args()
+        opt: CliNamespace = parser.parse_args(namespace=CliNamespace())
 
         log_level = logging.DEBUG if opt.debug else logging.CRITICAL
         logging.basicConfig(stream=sys.stdout, level=log_level)

@@ -21,6 +21,10 @@ class Console(Protocol):
         """Read a password without echoing."""
         ...
 
+    def input_yn(self, prompt: str = "") -> bool | None:
+        """Read yn value."""
+        ...
+
 
 class StdioConsole:
     """Default console using stdin/stdout and getpass."""
@@ -36,6 +40,13 @@ class StdioConsole:
             return _getpass.getpass(prompt, echo_char="*")  # type: ignore[call-arg]
         except TypeError:
             return _getpass.getpass(prompt, stream=None)
+
+    def input_yn(self, prompt: str = "") -> bool | None:
+        v = input(prompt).lower()
+        if v in ["y", "yes"]:
+            return True
+        if v in ["n", "no"]:
+            return False
 
 
 def default_console() -> StdioConsole:

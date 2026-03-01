@@ -27,7 +27,7 @@ ByFlyPy is a Python console application for checking account balance and statist
 
 ```bash
 # Clone the repository
-git clone https://github.com/anomalyco/ByFlyPy.git
+git clone https://github.com/peleccom/ByFlyPy.git
 cd ByFlyPy
 
 # Install with uv (recommended)
@@ -42,35 +42,35 @@ pip install -e ".[dev,plot]"
 ### Command Line
 
 ```bash
+
 # Check balance
-python byfly.py -l YOUR_LOGIN -p YOUR_PASSWORD
+byfly --phone +375331234567 --login 1721234
+
+byfly --api-v1 -l 1721234
 
 # Interactive mode
-python byfly.py -i
+byfly.py -i
 
 # Generate traffic graph
-python byfly.py -l YOUR_LOGIN -p YOUR_PASSWORD -g traf
+python byfly.py --api-v1 -l YOUR_LOGIN -p YOUR_PASSWORD -g traf
 
 # Generate time graph
-python byfly.py -l YOUR_LOGIN -p YOUR_PASSWORD -g time
+python byfly.py --api-v1 -l YOUR_LOGIN -p YOUR_PASSWORD -g time
 
 # Save graph to file
-python byfly.py -l YOUR_LOGIN -p YOUR_PASSWORD -g traf -s graph.png
-
-# Check multiple accounts from file
-python byfly.py --list accounts.txt
+python byfly.py --api-v1 -l YOUR_LOGIN -p YOUR_PASSWORD -g traf -s graph.png
 ```
 
 ### Python API
 
 ```python
-from byflyuser import ByFlyUser
+from byflypy import ByFlyApiClient
 
-# Create user instance
-user = ByFlyUser("login", "password")
+# Create client instance
+client = ByFlyApiClient("login", "password")
 
 # Login
-user.login()
+client.login()
 
 # Get account info
 info = user.get_account_info_page()

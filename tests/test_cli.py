@@ -16,6 +16,7 @@ from byflypy.cli import (
     Program,
     print_traffic_table,
 )
+from byflypy.cli_parser import CliNamespace
 from byflypy.clients.api_client import (
     ApiApplication,
     ApiContract,
@@ -387,7 +388,7 @@ class TestListAndInteractiveUseApiV1:
             f.write("mylogin:mypass\n")
             list_path = f.name
         try:
-            opt = parser.parse_args(["--list", list_path])
+            opt = parser.parse_args(["--list", list_path], namespace=CliNamespace())
             assert opt.use_api_v1 is False  # not set by parser
             ui_calls = []
 
@@ -405,7 +406,7 @@ class TestListAndInteractiveUseApiV1:
         """Interactive mode uses API v1 so Login/Password prompt works."""
         program = Program()
         parser = program.setup_cmd_parser()
-        opt = parser.parse_args(["--interactive"])
+        opt = parser.parse_args(["--interactive"], namespace=CliNamespace())
         assert opt.use_api_v1 is False
         with (
             patch("builtins.input", return_value=""),
@@ -413,8 +414,6 @@ class TestListAndInteractiveUseApiV1:
             contextlib.suppress(SystemExit),
         ):
             program.interactive_mode_handler(opt, "users.db")
-        # Handler sets use_api_v1=True at start before prompting
-        assert opt.use_api_v1 is True
 
 
 class TestArgumentParser:

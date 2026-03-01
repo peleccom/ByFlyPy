@@ -3,6 +3,26 @@
 from __future__ import annotations
 
 import argparse
+from typing import Literal
+
+
+class CliNamespace(argparse.Namespace):
+    account_phone: str | None = None
+    access_token: str | None = None
+    login: str | None = None
+    password: str | None = None
+    sms_code: str | None = None
+    use_api_v1: bool = False
+    quiet: bool = False
+    graph: Literal["time", "traf"] | None = None
+    imagefilename: str | None = None
+    previous_period: bool = False
+    interactive: bool = False
+    check_list: str | None = None
+    debug: bool = False
+    pause: bool = False
+    nologo: bool = False
+    db: str | None = None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -65,6 +85,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         dest="use_api_v1",
         help="Use old HTML-based API v1 instead of API v2 (deprecated)",
+        default=False,
     )
 
     output_group = parser.add_argument_group("Output Options")

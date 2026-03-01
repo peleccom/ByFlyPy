@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 
+from byflypy.cli_parser import CliNamespace
 from byflypy.clients.api_client import ByFlyApiClient, TokenManager
 from byflypy.clients.html_client import ByFlyHtmlClient, get_exception_str
 from byflypy.console import Console
@@ -11,8 +12,16 @@ from byflypy.database import DBManager, Table
 from byflypy.exceptions import ByFly2FARequiredError, ByFlyError
 
 
+def _normalize_phone_intl(phone: str | None) -> str | None:
+    if not phone:
+        return phone
+    if phone.startswith("+"):
+        return phone
+    return f"+{phone}"
+
+
 def create_client(
-    opt: argparse.Namespace,
+    opt: CliNamespace,
     database_filename: str,
     console: Console,
 ) -> tuple[ByFlyApiClient | ByFlyHtmlClient | None, int | None]:
@@ -67,13 +76,12 @@ def _load_password_from_db(
 
 
 def _create_api_client(
-    opt: argparse.Namespace,
+    opt: CliNamespace,
     console: Console,
 ) -> tuple[ByFlyApiClient | None, int | None]:
     """Create and login REST API v2 client; resolve btk_id if needed."""
     phone = opt.account_phone
-    if phone and not phone.startswith("+"):
-        phone = "+" + phone
+    phone = _normalize_phone_intl(opt.account_phone)
 
     client = None
     if opt.access_token:
@@ -87,7 +95,7 @@ def _create_api_client(
     elif phone:
         token_manager = TokenManager(console=console)
         if not token_manager.load(phone) and not opt.password:
-            opt.password = console.get_password("Password:")
+            opt.password = console.get_password("Password: ")
         client = ByFlyApiClient(
             phone=phone,
             password=opt.password,
