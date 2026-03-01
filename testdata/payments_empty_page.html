@@ -35,7 +35,7 @@
 				control:"#treecontrol",
 				collapsed: true,
 				persist: "cookie"
-		
+
 			});
 		$(".open_all_tree").trigger('click');
 
@@ -50,17 +50,17 @@ $('.showhid').click(function() {
 $('.showhidext').click(function() {
 
   var shid = $(this).attr('shid');
-				if(!$('#'+shid).is(":hidden"))	
+				if(!$('#'+shid).is(":hidden"))
 				$(this).html($(this).attr('pername')+' &rarr;');
-				else $(this).html($(this).attr('pername')+' &darr;');				
+				else $(this).html($(this).attr('pername')+' &darr;');
                 var shid = $(this).attr('shid');
-                $('#'+shid).slideToggle(200);			
+                $('#'+shid).slideToggle(200);
                 return false;
 });
 
 
 		})
-		
+
 jQuery.fn.extend({
 scrollToMe: function () {
     var x = jQuery(this).offset().top - 100;
@@ -129,10 +129,10 @@ function chacc(f) {
 	<div class="add_serv_div">
 		<a id="popupContactClose" href="#" onclick="return 	disablePopup();">x</a>
 		<h1 class="htitle">Добавление услуги</h1>
-		
+
 
 		<div class="contactArea">
-	    <form name="Add_Serv_form" id="Add_Serv_form" action="" onsubmit="return add_servicew();" method="POST">		
+	    <form name="Add_Serv_form" id="Add_Serv_form" action="" onsubmit="return add_servicew();" method="POST">
 		<input type="hidden" value="add_service" name="live">
 		<input type="hidden" value="app" name="app" class="japp">
 		<input type="hidden" value="rz" name="rz" class="jrz">
@@ -142,7 +142,7 @@ function chacc(f) {
 		<input type="hidden" value="0" name="dparam1" class="dparam1">
 		<div class="add_serv_const"></div>
 		<div class="param_add_servicep1">
-		<span class="add_param_name1">Параметр:</span>	
+		<span class="add_param_name1">Параметр:</span>
 			<select id="pparamg1" name="pparamg1">
 			<option value="">Все</option>
 			</select>
@@ -152,7 +152,7 @@ function chacc(f) {
 		<input type="text" value="" class="add_param_value" name="add_param_value">
 		<div class="both_c"></div>
 		</div>
-		
+
 		<input type="hidden" class="add_serv_prim_txt" name="add_serv_prim_txt" value="">
 		<div class="control_add_service"><div class="price_add_serv" style="color:rgba(252, 127, 127, 0.92);"></div>
 <div class="agr_ja_p"><label for="agr_ja"><input name="agr_ja" id="agr_ja" value="1" type="checkbox">Я согласен с условиями Договора</label><br></div>
@@ -160,7 +160,7 @@ function chacc(f) {
 <input type="submit" disabled value="Добавить" class="but_add_serv">&nbsp;<input type="button" value="Печать" class="onButPrint">&nbsp;<input type="button" value="Закрыть"  onclick="return 	disablePopup();">
 </div>
 </div>
-	</form>	
+	</form>
 		</div>
 		<script>
 $(".onButPrint").click(function() {
@@ -179,7 +179,7 @@ $('.but_add_serv').attr('disabled','disabled');
 });
 		</script>
 </div>
-	
+
 
 
 
@@ -187,7 +187,7 @@ $('.but_add_serv').attr('disabled','disabled');
 <a id="popupContactClose" href="#" onclick="return 	disablePopup();">x</a>
 <h1 class="htitle titleaf">Оферта №</h1>
 <div class="contactArea">
-<form name="Add_Serv_form" id="Add_Serv_form" action="" onsubmit="return add_service();" method="POST">		
+<form name="Add_Serv_form" id="Add_Serv_form" action="" onsubmit="return add_service();" method="POST">
 <div class="afert_serv_const"></div>
 
 <div class="control_add_service">
@@ -196,7 +196,7 @@ $('.but_add_serv').attr('disabled','disabled');
 <input type="button" value="Печать" class="onButPrintAf">&nbsp;<input type="button" value="Закрыть"  onclick="return 	disablePopup();">
 </div>
 </div>
-</form>	
+</form>
 </div>
 <script>
 $(".onButPrintAf").click(function() {
@@ -219,16 +219,16 @@ $('.afert_serv_const').printElement();
 		<div class="contactArea">
 		<span class="add_param_name"></span>
 		<div class="textContactArea"></div><br>
-		<form  action="" onsubmit="return myconfirm_service();" method="POST">			
+		<form  action="" onsubmit="return myconfirm_service();" method="POST">
 		<div class="control_add_service"><span id="zmyconfirm"><input type="button" onclick="" value="Продолжить"></span>&nbsp;<input type="button" value="Закрыть" onclick="return 	disablePopup();"></div>
-		</form>	
-		</div>		
+		</form>
+		</div>
 </div>
-	
 
 
-	
-	
+
+
+
 <div class="helper_sw" style="display:none">
 <a id="popupContactClose" href="#" onclick="return 	disablePopup();">x</a>
 		<h1 class="htitle">Помощь</h1>
@@ -242,10 +242,10 @@ $('.afert_serv_const').printElement();
 	<div class="ed_serv_div">
 		<a id="popupContactClose" href="#" onclick="return 	disablePopup();">x</a>
 		<h1 class="htitle">Редактирование услуги</h1>
-		
+
 
 		<div class="contactArea">
-	    <form name="ed_servicer" id="ed_servicer" action="" onsubmit="return ed_servicerw();" method="POST">		
+	    <form name="ed_servicer" id="ed_servicer" action="" onsubmit="return ed_servicerw();" method="POST">
 		<input type="hidden" value="ed_service" class="ed_live" name="live">
 		<input type="hidden" value="1" name="ed_service">
 		<input type="hidden" value="rz" name="rz" class="erz">
@@ -259,17 +259,17 @@ $('.afert_serv_const').printElement();
 		<div class="ed_param_value_zz"><input type="text" value="" class="ed_param_value" name="ed_param_value"></div>
 		<div class="both_c"></div>
 		</div>
-		
+
 		<div class="control_ed_service"><input type="submit"  value="Сохранить">&nbsp;<input type="button" value="Закрыть" onclick="return 	disablePopup();"></div>
-	    </form>	
+	    </form>
 		</div>
-		
+
 	</div>
-	
-	
-	
-	
-	
+
+
+
+
+
 <style>
 #fuzz{ position:absolute; top:0; left:0; width:100%; z-index:100; background: url('data/img/fuzz.gif'); display:none; text-align:left; opacity:0.6;  }
 .msgbox img { position:absolute;z-index:200; top: 50%; left: 50%; margin-top: -100px; margin-left: -150px;  opacity:0.5;}
@@ -284,7 +284,7 @@ $("#fuzz").css("height", ($(window).height()+7000)+'px');
 //$("#fuzz").css("height",(7000+$(document).height())+'px');
 //$("#fuzz").css("height", ($(window).height()+7000));
 });
-}); 
+});
 </script>
 
   <div id="load">Пожалуйста, подождите,<br>идёт загрузка...<br><br><img src="/data/img/ajax-loader .gif"/></div>
@@ -348,7 +348,7 @@ $("#fuzz").css("height", ($(window).height()+7000)+'px');
 </div>
         </div>
 		<div id="s11-headerpnel-bottom">
-		
+
 <!--
 <div class="language-list">
 <ul><li class="be first"><a href="#" class="language-link">Бел</a></li>
@@ -368,9 +368,9 @@ $("#fuzz").css("height", ($(window).height()+7000)+'px');
           <div id="sitemap-link" style="padding: 0px 0px 0px 10px">
         <a href="http://beltelecom.by/sitemap" title="Карта сайта" target="_blank" style="font-size:11px !important; color:#788189 !important;">Карта сайта</a>
 		 </div>
-		</div>        	
+		</div>
 	<div class="topmenu">
-	
+
     <ul class="menu">
 
 <li class="leaf first menu-mlid-1535 has-children "><a href="/main.html" onclick="showwt();">&nbsp;Состояние счета&nbsp;</a></li>
@@ -388,29 +388,29 @@ $("#fuzz").css("height", ($(window).height()+7000)+'px');
 <li class="last menu-mlid-1547 has-children "><a href="/prilag_add.html" onclick="showwt();">&nbsp;Заказ новых услуг</a></li>
 
 </ul>
-	</div>        
+	</div>
 		</div>
-		
+
 		<div class="breadcrumb"><a href="/">Главная</a> &rarr; <!--<a href="/"></a> &rarr;--> Платежи</div></div>
 		<div id="s11-middle">
 		<div id="s11-container">
 		<div id="s11-contentpanel">
-		
+
 		<!--
 		show subscriber info message for all users
 		-->
-		
+
 
 		<!--
 		show subscriber info message for user category
 		-->
-		
+
 
         <!--
         show subscriber info message for user category
         -->
-        
-		
+
+
 		<center><h1>Платежи</h1></center>
 		<div id="node-261" class="node node-type-page build-mode-full" >
       <div class="content">
@@ -621,7 +621,7 @@ getWindow($(".helper_sw").html(),700,350,25,25);
             <ul>
                 <li>
                     <span class="icon"><img style="width:16px;float:left;" src="/data/img/liber/byfly_small.png"></span><a href="#" style="text-decoration: none;"  onclick="return SendPost('?pril_sel=1111111111111&live=ffflogin_111111&chpril=1111111')" class="cur_l jk11111111"><strong>1111111111111&nbsp;(Домосед Старт)</strong></a>
-                    
+
                 </li>
             </ul>
         </div>
@@ -634,7 +634,7 @@ getWindow($(".helper_sw").html(),700,350,25,25);
 <h1 class="zag_1">Услуги, доступные для заказа</h1>
 <div class="leftmenu">
     <ul>
-    
+
         <li class="menu-group"><a href="#" class="showhid" shid="sel_pril_add_2">SMART ZALA™</a>
             <div id="sel_pril_add_2">
                 <ul>
@@ -644,7 +644,7 @@ getWindow($(".helper_sw").html(),700,350,25,25);
                 </ul>
             </div>
         </li>
-    
+
         <li class="menu-group"><a href="#" class="showhid" shid="sel_pril_add_3">Виртуальный телефонный номер</a>
             <div id="sel_pril_add_3">
                 <ul>
@@ -654,7 +654,7 @@ getWindow($(".helper_sw").html(),700,350,25,25);
                 </ul>
             </div>
         </li>
-    
+
         <li class="menu-group"><a href="#" class="showhid" shid="sel_pril_add_5">Wifi</a>
             <div id="sel_pril_add_5">
                 <ul>
@@ -664,7 +664,7 @@ getWindow($(".helper_sw").html(),700,350,25,25);
                 </ul>
             </div>
         </li>
-    
+
     </ul>
 
 </div>
@@ -672,7 +672,7 @@ getWindow($(".helper_sw").html(),700,350,25,25);
 <div id="s11-leftpanel" style="margin-top:200px;">
 <div class="reclama">
 
-		
+
 
 	</div>
 </div>
@@ -771,12 +771,12 @@ $(window).load(function(){new BannerSlider();});
 <script type="text/javascript">
 
 function  showwt(){
-//$("#fuzz").fadeIn(); 
+//$("#fuzz").fadeIn();
 //$("#load").show();
 }
 function SendPost(par){
 // $("#fuzz").fadeOut();
-//$("#fuzz").fadeIn(); 
+//$("#fuzz").fadeIn();
 //$("#load").show();
 
   //alert("Handler for .click() called.");
